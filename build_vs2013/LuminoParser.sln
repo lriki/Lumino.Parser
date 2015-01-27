@@ -1,11 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTest", "UnitTest\UnitTest.vcxproj", "{8CE12A6F-D670-4BB7-8994-578A09EDCBCB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{180CF223-7284-44AB-8209-12B556C6109D} = {180CF223-7284-44AB-8209-12B556C6109D}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LuminoParser", "LuminoParser\LuminoParser.vcxproj", "{180CF223-7284-44AB-8209-12B556C6109D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8715C72D-4B3F-4E92-B363-11D6ECCAD809} = {8715C72D-4B3F-4E92-B363-11D6ECCAD809}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LuminoCore", "..\external\Lumino.Core\build_vs2013\LuminoCore\LuminoCore.vcxproj", "{8715C72D-4B3F-4E92-B363-11D6ECCAD809}"
 EndProject

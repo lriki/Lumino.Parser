@@ -4,6 +4,9 @@
     <Filter Include="Parser">
       <UniqueIdentifier>{e35a1f41-de85-4f87-a51e-061503497be6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Parser\Tools">
+      <UniqueIdentifier>{0390e6f9-97fd-4788-a7c5-c9984163acc2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Parser\Lexer.cpp">
@@ -14,6 +17,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Parser\ErrorInfo.cpp">
       <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\Tools\SimpleCppIncludePreprocessor.cpp">
+      <Filter>Parser\Tools</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -28,6 +34,9 @@
     </ClInclude>
     <ClInclude Include="..\..\include\Lumino\Parser\CppLexer.h">
       <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\Tools\SimpleCppIncludePreprocessor.h">
+      <Filter>Parser\Tools</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

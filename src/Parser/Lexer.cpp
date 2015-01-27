@@ -8,17 +8,7 @@ namespace Lumino
 namespace Parser
 {
 
-enum AlphaNumericType
-{
-	AlphaNumericType_MBC = 0,			// マルチバイト文字に配置されるコード
-	AlphaNumericType_Control = 1,		// 制御文字
-	AlphaNumericType_OpChar = 2,		// オペレーションコード
-	AlphaNumericType_Number = 3,		// 数字
-	AlphaNumericType_Alphabet = 4,		// 通常文字
-	AlphaNumericType_HexAlpha = 5,		// 16進数字としても使える文字
-};
-
-static int g_alphaNumericTypeTable[256] =
+static int g_alphaNumTypeTable[256] =
 {
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -98,16 +88,15 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 		m_tokenList.push_back(Token<TChar>(TokenType_NewLine, buffer, buffer + count));
 		return count;
 	}
+	// 予約語
+	count = ReadKeyword(buffer);
+	if (count > 0) {
+		return count;
+	}
 	// 識別子
 	count = ReadIdentifier(buffer);
 	if (count > 0) {
 		m_tokenList.push_back(Token<TChar>(TokenType_Identifier, buffer, buffer + count));
-		return count;
-	}
-	// 予約語
-	count = ReadKeyword(buffer);
-	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_Keyword, buffer, buffer + count));
 		return count;
 	}
 	// 数値リテラル
@@ -219,7 +208,12 @@ int Lexer<TChar>::ReadIdentifier(const TChar* buffer)
 template<typename TChar>
 int Lexer<TChar>::ReadKeyword(const TChar* buffer)
 {
-	return CheckKeyword(buffer);
+	int lnagTokenType = 0;
+	int count = CheckKeyword(buffer, &lnagTokenType);
+	if (count > 0) {
+		m_tokenList.push_back(Token<TChar>(TokenType_Keyword, lnagTokenType, buffer, buffer + count));
+	}
+	return count;
 }
 
 //-----------------------------------------------------------------------------
@@ -257,17 +251,17 @@ int Lexer<TChar>::ReadNumericLiteral(const TChar* buffer)
 		if (*pPos > 255) {	// wchar_t の範囲チェック
 			break;
 		}
-		AlphaNumericType charType = (AlphaNumericType)g_alphaNumericTypeTable[*pPos];
+		AlphaNumType charType = (AlphaNumType)g_alphaNumTypeTable[*pPos];
 
 		// マルチバイトコードまたは制御文字または . 以外の演算子であれば終了
-		if (charType == AlphaNumericType_MBC ||
-			charType == AlphaNumericType_Control ||
-			(charType == AlphaNumericType_OpChar && *pPos != '.')){
+		if (charType == AlphaNumType_MBC ||
+			charType == AlphaNumType_Control ||
+			(charType == AlphaNumType_OpChar && *pPos != '.')){
 			break;	// 終了
 		}
 
 		// サフィックスのチェック (サフィックスは一番最後だが、いろいろなところに書ける。1f 1.0f .1f 1.0-e2f)
-		if (charType == AlphaNumericType_Alphabet || charType == AlphaNumericType_HexAlpha){
+		if (charType == AlphaNumType_Alphabet || charType == AlphaNumType_HexAlpha){
 			// 整数型
 			count = CheckIntegerSuffix(pPos);
 			if (count > 0) {
@@ -295,13 +289,13 @@ int Lexer<TChar>::ReadNumericLiteral(const TChar* buffer)
 		{
 		case 0:		// 整数部分
 		{
-						if (bHexMode && charType == AlphaNumericType_HexAlpha) {
+						if (bHexMode && charType == AlphaNumType_HexAlpha) {
 							pPos++;		// 16 進数なら HexAlpha を許可して継続
 						}
-						else if (charType == AlphaNumericType_Number) {
+						else if (charType == AlphaNumType_Number) {
 							pPos++;		// 普通の数値も OK
 						}
-						else if (charType == AlphaNumericType_OpChar && *pPos == '.') {
+						else if (charType == AlphaNumType_OpChar && *pPos == '.') {
 							nStep = 1;	// . が見つかった。小数部分へ移行
 							pPos++;
 						}
@@ -312,10 +306,10 @@ int Lexer<TChar>::ReadNumericLiteral(const TChar* buffer)
 		}
 		case 1:		// 小数部分
 		{
-						if (bHexMode && charType == AlphaNumericType_HexAlpha) {
+						if (bHexMode && charType == AlphaNumType_HexAlpha) {
 							pPos++;		// 16 進数なら HexAlpha を許可して継続
 						}
-						else if (charType == AlphaNumericType_Number) {
+						else if (charType == AlphaNumType_Number) {
 							pPos++;		// 普通の数値も OK
 						}
 						else
@@ -333,7 +327,7 @@ int Lexer<TChar>::ReadNumericLiteral(const TChar* buffer)
 		}
 		case 2:		// 指数部分
 		{
-						if (charType == AlphaNumericType_Number) {
+						if (charType == AlphaNumType_Number) {
 							pPos++;		// 普通の数値は OK
 						}
 						else {
@@ -491,6 +485,18 @@ int Lexer<TChar>::ReadMBSSequence(const TChar* buffer)
 	};
 
 	return pPos - buffer;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+template<typename TChar>
+AlphaNumType Lexer<TChar>::GetAlphaNumType(TChar ch)
+{
+	if (ch > 255) {
+		return AlphaNumType_MBC;	// wchar_t 型の多バイトコード
+	}
+	return (AlphaNumType)g_alphaNumTypeTable[ch];
 }
 
 //-----------------------------------------------------------------------------

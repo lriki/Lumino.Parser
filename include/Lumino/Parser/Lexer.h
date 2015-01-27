@@ -8,6 +8,17 @@ namespace Lumino
 {
 namespace Parser
 {
+// 文字の種別
+enum AlphaNumType
+{
+	AlphaNumType_MBC = 0,			///< マルチバイト文字に配置されるコード
+	AlphaNumType_Control = 1,		///< 制御文字
+	AlphaNumType_OpChar = 2,		///< オペレーションコード
+	AlphaNumType_Number = 3,		///< 数字
+	AlphaNumType_Alphabet = 4,		///< 通常文字
+	AlphaNumType_HexAlpha = 5,		///< 16進数字としても使える文字
+};
+
 class ErrorManager;
 
 template<typename TChar>
@@ -15,6 +26,7 @@ class Lexer
 {
 public:
 	typename typedef Array< Token<TChar> > TokenList;
+
 
 public:
 	Lexer();
@@ -45,6 +57,7 @@ private:
 	//int		ReadHexLiteralStart(const TChar* buffer);		// 0x (BASICやるなんてこと名はいと思うけど &h とか $ とか)
 
 protected:
+	AlphaNumType GetAlphaNumType(TChar ch);
 	const TChar* GetBufferEnd() const { return m_bufferEnd; }
 
 	// 以下をオーバーライドする場合、終端確認には GetBufferEnd() を使用する
@@ -54,7 +67,7 @@ protected:
 	virtual int CheckCommentLine(const TChar* buffer) = 0;
 	virtual int CheckIdentStart(const TChar* buffer) = 0;
 	virtual int CheckIdentLetter(const TChar* buffer) = 0;
-	virtual int CheckKeyword(const TChar* buffer) = 0;
+	virtual int CheckKeyword(const TChar* buffer, int* langTokenType) = 0;
 	virtual int CheckHexLiteralStart(const TChar* buffer) = 0;
 	virtual int CheckIntegerSuffix(const TChar* buffer) = 0;
 	virtual int CheckRealSuffix(const TChar* buffer) = 0;

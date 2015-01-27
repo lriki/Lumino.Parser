@@ -36,6 +36,14 @@ public:
 	{
 	}
 
+	Token(TokenType type, int lnagTokenType, const TChar* pBegin, const TChar* pEnd)
+		: m_type(type)
+		, m_langTokenType(lnagTokenType)
+		, m_begin(pBegin)
+		, m_end(pEnd)
+	{
+	}
+
 public:
 	TokenType	GetTokenType() const { return m_type; }
 	const char*	GetTokenBegin() const { return m_begin; }
@@ -44,6 +52,7 @@ public:
 
 private:
 	TokenType		m_type;
+	int				m_langTokenType;
 	const TChar*	m_begin;
 	const TChar*	m_end;
 };
