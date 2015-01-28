@@ -14,6 +14,7 @@
     <ClCompile Include="..\..\src\Parser\CppLexer.cpp" />
     <ClCompile Include="..\..\src\Parser\ErrorInfo.cpp" />
     <ClCompile Include="..\..\src\Parser\Lexer.cpp" />
+    <ClCompile Include="..\..\src\Parser\ParserUtils.cpp" />
     <ClCompile Include="..\..\src\Parser\Tools\SimpleCppIncludePreprocessor.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -21,7 +22,8 @@
     <ClInclude Include="..\..\include\Lumino\Parser\ErrorInfo.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\Lexer.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\Token.h" />
-    <ClInclude Include="..\..\src\Parser\Tools\SimpleCppIncludePreprocessor.h" />
+    <ClInclude Include="..\..\include\Lumino\Parser\Tools\SimpleCppIncludePreprocessor.h" />
+    <ClInclude Include="..\..\src\Parser\ParserUtils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{180CF223-7284-44AB-8209-12B556C6109D}</ProjectGuid>

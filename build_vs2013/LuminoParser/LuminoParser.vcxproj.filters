@@ -21,6 +21,9 @@
     <ClCompile Include="..\..\src\Parser\Tools\SimpleCppIncludePreprocessor.cpp">
       <Filter>Parser\Tools</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Parser\ParserUtils.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\Lumino\Parser\Lexer.h">
@@ -35,8 +38,11 @@
     <ClInclude Include="..\..\include\Lumino\Parser\CppLexer.h">
       <Filter>Parser</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Parser\Tools\SimpleCppIncludePreprocessor.h">
+    <ClInclude Include="..\..\include\Lumino\Parser\Tools\SimpleCppIncludePreprocessor.h">
       <Filter>Parser\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\ParserUtils.h">
+      <Filter>Parser</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

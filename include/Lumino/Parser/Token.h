@@ -50,6 +50,24 @@ public:
 	const char*	GetTokenEnd() const { return m_end; }
 	int			GetLength() const { return m_end - m_begin; }
 
+	bool IsGenericSpace() const
+	{
+		return
+			m_type == TokenType_SpaceSequence ||
+			m_type == TokenType_NewLine ||
+			m_type == TokenType_Comment;
+	}
+
+	bool IsGenericToken() const
+	{
+		return !IsGenericSpace();
+	}
+
+	bool IsEOF() const
+	{
+		return m_type == TokenType_EOF;
+	}
+
 private:
 	TokenType		m_type;
 	int				m_langTokenType;
