@@ -16,6 +16,16 @@ namespace Parser
 //
 //-----------------------------------------------------------------------------
 template<typename TChar>
+CppLexer<TChar>::CppLexer()
+	: m_seqPreProInclude(PreProIncludeSeq_LineHead)
+{
+
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+template<typename TChar>
 int CppLexer<TChar>::CheckSpaceChar(const TChar* buffer)
 {
 	if (buffer[0] == ' ' ||
@@ -246,6 +256,9 @@ int CppLexer<TChar>::CheckStringStart(const TChar* buffer)
 	if (buffer[0] == '\'' ||
 		buffer[0] == '"')
 		return 1;
+	// include ディレクティブ内であれば <> も文字列扱いする。
+	if (m_seqPreProInclude == PreProIncludeSeq_FoundInclude && buffer[0] == '<')
+		return 1;
 	return 0;
 	// C# なら @" もある
 	// http://hydrocul.github.io/wiki/programming_languages_diff/string/escape.html
@@ -342,6 +355,53 @@ int CppLexer<TChar>::CheckEscNewLine(const TChar* buffer)
 	if (buffer[0] == '\\' && buffer[1] == '\n')
 		return 2;
 	return 0;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+template<typename TChar>
+void CppLexer<TChar>::PollingToken(Token<TChar>& token)
+{
+	if (token.IsGenericSpace()) {
+		// ホワイトスペースやコメントである。なにもしない
+		return;
+	}
+
+	// 何もしていない。改行を探す。
+	if (m_seqPreProInclude == PreProIncludeSeq_Idle)
+	{
+		if (token.GetTokenType() == TokenType_NewLine) {
+			m_seqPreProInclude = PreProIncludeSeq_LineHead;		// 改行が見つかった。行頭状態へ
+		}
+	}
+	// 行頭にいる。# を探す。
+	else if (m_seqPreProInclude == PreProIncludeSeq_LineHead)
+	{
+		if (token.GetTokenType() == TokenType_Operator && *token.GetTokenBegin() == '#') {
+			m_seqPreProInclude = PreProIncludeSeq_FoundSharp;	// "#" を見つけた
+		}
+		else {
+			m_seqPreProInclude = PreProIncludeSeq_Idle;		// "#" 以外のトークンだった。Idle へ。
+		}
+	}
+	// # まで見つけている。次の "include" を探す。
+	else if (m_seqPreProInclude == PreProIncludeSeq_FoundSharp)
+	{
+		if (token.EqualString(LN_T(TChar, "include"), 7)) {
+			m_seqPreProInclude = PreProIncludeSeq_FoundInclude;	// "include" を見つけた
+		}
+		else {
+			m_seqPreProInclude = PreProIncludeSeq_Idle;		// #" 以外のトークンだった。"include" 以外のプリプロディレクティブ。
+		}
+	}
+	// include ～ 行末
+	else if (m_seqPreProInclude == PreProIncludeSeq_FoundInclude)
+	{
+		if (token.GetTokenType() == TokenType_NewLine) {
+			m_seqPreProInclude = PreProIncludeSeq_LineHead;		// 改行が見つかった。行頭状態へ
+		}
+	}
 }
 
 // テンプレートのインスタンス化

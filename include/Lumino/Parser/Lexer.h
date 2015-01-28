@@ -79,6 +79,9 @@ protected:
 	virtual int CheckEscNewLine(const TChar* buffer) = 0;
 	virtual bool CheckCaseSensitive() = 0;
 
+	// トークンが確定するたびに呼び出される
+	virtual void PollingToken(Token<TChar>& token) {}
+
 private:
 	TChar*			m_cursor;
 	TChar*			m_bufferEnd;	// 入力バッファの終端 (最後の文字の次(EOF)を指す)

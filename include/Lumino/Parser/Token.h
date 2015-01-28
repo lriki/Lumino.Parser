@@ -31,6 +31,7 @@ class Token
 public:
 	Token(TokenType type, const TChar* pBegin, const TChar* pEnd)
 		: m_type(type)
+		, m_langTokenType(0)
 		, m_begin(pBegin)
 		, m_end(pEnd)
 	{
@@ -45,17 +46,23 @@ public:
 	}
 
 public:
-	TokenType	GetTokenType() const { return m_type; }
-	const char*	GetTokenBegin() const { return m_begin; }
-	const char*	GetTokenEnd() const { return m_end; }
-	int			GetLength() const { return m_end - m_begin; }
+	TokenType		GetTokenType() const { return m_type; }
+	const TChar*	GetTokenBegin() const { return m_begin; }
+	const TChar*	GetTokenEnd() const { return m_end; }
+	int				GetLength() const { return m_end - m_begin; }
+
 
 	bool IsGenericSpace() const
 	{
-		return
+		return (
 			m_type == TokenType_SpaceSequence ||
-			m_type == TokenType_NewLine ||
-			m_type == TokenType_Comment;
+			m_type == TokenType_Comment ||
+			m_type == TokenType_EscNewLine);
+		/* TokenType_EscNewLine も空白である。
+		* # \
+		* include "hoge.h"
+		* はコンパイル可能。
+		*/
 	}
 
 	bool IsGenericToken() const
@@ -66,6 +73,13 @@ public:
 	bool IsEOF() const
 	{
 		return m_type == TokenType_EOF;
+	}
+
+	// 文字列が一致するか (strncmp のような部分一致ではない。長さが違えばその時点で false)
+	bool EqualString(const TChar* str, int len) const
+	{
+		if (GetLength() != len) return false;
+		return StringUtils::StrNCmp(m_begin, str, len) == 0;
 	}
 
 private:

@@ -82,7 +82,7 @@ template<typename TChar>
 class CppLexer : public Lexer<TChar>
 {
 public:
-	CppLexer() {}
+	CppLexer();
 	virtual ~CppLexer() {}
 
 protected:
@@ -106,8 +106,20 @@ protected:
 	virtual int CheckEscNewLine(const TChar* buffer);
 	virtual bool CheckCaseSensitive() { return true; }	// 大文字と小文字を区別する
 
+	virtual void PollingToken(Token<TChar>& token);
+
 private:
 
+	// #include のシーケンス
+	enum PreProIncludeSeq
+	{
+		PreProIncludeSeq_Idle = 0,		///< 何もしていない
+		PreProIncludeSeq_LineHead,		///< 行頭である。または初期状態
+		PreProIncludeSeq_FoundSharp,	///< "#" を見つけた
+		PreProIncludeSeq_FoundInclude,	///< "include" を見つけた
+	};
+
+	PreProIncludeSeq	m_seqPreProInclude;
 
 };
 

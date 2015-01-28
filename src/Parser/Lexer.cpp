@@ -63,6 +63,9 @@ void Lexer<TChar>::Analyze(RefBuffer* buffer, ErrorManager* errorManager)
 			// エラーは呼び出し先で処理済
 			break;
 		}
+
+		// 新しく読み取られたトークンを通知する
+		PollingToken(m_tokenList.GetLast());
 		m_cursor += nLen;
 	}
 
