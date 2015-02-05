@@ -111,7 +111,6 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 	// 文字列リテラル
 	count = ReadCharOrStringLiteral(buffer);
 	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_CharOrStringLiteral, buffer, buffer + count));
 		return count;
 	}
 	// コメント (演算子よりも優先する)
@@ -175,7 +174,12 @@ int Lexer<TChar>::ReadSpaceSequence(const TChar* buffer)
 template<typename TChar>
 int Lexer<TChar>::ReadNewLine(const TChar* buffer)
 {
-	if (*buffer == '\n'){
+	if (buffer[0] == '\r' &&
+		buffer[1] == '\n'){
+		return 2;
+	}
+	if (buffer[0] == '\n' ||
+		buffer[0] == '\n'){
 		return 1;
 	}
 	return 0;
@@ -351,13 +355,14 @@ template<typename TChar>
 int Lexer<TChar>::ReadCharOrStringLiteral(const TChar* buffer)
 {
 	// 文字列の開始チェック
-	int count = CheckStringStart(buffer);
-	if (count == 0) {
+	int startCount = CheckStringStart(buffer);
+	if (startCount == 0) {
 		return 0;
 	}
 
 	const TChar* pStart = buffer;
 	const TChar* pPos = buffer + 1;
+	int endCount = 0;
 	while (pPos < m_bufferEnd)
 	{
 		// エスケープシーケンスのチェック
@@ -368,14 +373,18 @@ int Lexer<TChar>::ReadCharOrStringLiteral(const TChar* buffer)
 		}
 
 		// 文字列の終了チェック
-		count = CheckStringEnd(pPos, pStart);
-		if (count > 0) {
-			pPos += count;
+		endCount = CheckStringEnd(pPos, pStart);
+		if (endCount > 0) {
+			pPos += endCount;
 			break;		// 文字列終了
 		}
 
 		pPos++;
 	}
+
+	Token<TChar> token(TokenType_CharOrStringLiteral, buffer, pPos);
+	token.SetStringValue(buffer + startCount, pPos - endCount);
+	m_tokenList.push_back(token);
 
 	return pPos - buffer;
 }

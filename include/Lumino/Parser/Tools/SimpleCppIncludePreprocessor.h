@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <Lumino/IO/PathName.h>
 #include "../CppLexer.h"
 
 namespace Lumino
@@ -12,17 +13,28 @@ template<typename TChar>
 class SimpleCppIncludePreprocessor
 {
 public:
-	typename typedef Array< Token<TChar> > TokenList;
+	typename typedef Token<TChar>			TokenT;
+	typename typedef Array< Token<TChar> >	TokenList;
 	typename typedef Array< Token<TChar> >::const_iterator Position;
+	typename typedef BasicPathName<TChar>	PathNameT;
 
 public:
-	void Analyze(const TokenList& tokenList, ErrorManager* errorManager);
+	struct SettingData
+	{
+		PathName	CurrentDirectory;
+	};
+
+public:
+	void Analyze(TokenList* tokenList, const SettingData& settingData, ErrorManager* errorManager);
 
 private:
-	bool ParseIncludeLine(Position posNLOrEOF, Position* outLineHead, Position* outLineEnd, TChar* outFilePath);
+	bool ParseIncludeLine(Position posSharp, Position* outLineHead, Position* outLineEnd, Position* outFilePath);
+	Position GetNextGenericToken(Position pos);
+	bool IsGenericSpace(const TokenT& token);
 
 private:
-	ErrorManager*	m_errorManager;
+	ErrorManager*		m_errorManager;
+	PathNameT			m_currentDirectory;
 };
 
 } // namespace Parser

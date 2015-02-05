@@ -7,6 +7,9 @@
     <Filter Include="Parser\Tools">
       <UniqueIdentifier>{0390e6f9-97fd-4788-a7c5-c9984163acc2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Parser\Cpp">
+      <UniqueIdentifier>{6129353c-4938-4355-a85f-bf53e17792a4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Parser\Lexer.cpp">
@@ -23,6 +26,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Parser\ParserUtils.cpp">
       <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\Cpp\CppPreprocessor.cpp">
+      <Filter>Parser\Cpp</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -43,6 +49,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\Parser\ParserUtils.h">
       <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\Cpp\CppPreprocessor.h">
+      <Filter>Parser\Cpp</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
