@@ -53,5 +53,11 @@
     <ClInclude Include="..\..\src\Parser\Cpp\CppPreprocessor.h">
       <Filter>Parser\Cpp</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\Lumino\Parser\String.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Lumino\Parser\TokenList.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

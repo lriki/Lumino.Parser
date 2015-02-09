@@ -26,10 +26,11 @@ TEST_F(Test_SimpleCppIncludePreprocessor, Basic)
 	Parser::SimpleCppIncludePreprocessor<char> preprocessor;
 	preprocessor.Analyze(&lexer.GetTokenList(), setting, &err);
 
-	StringA text;
-	LN_FOREACH(Parser::Token<char>& t, lexer.GetTokenList())
-	{
-	}
+	FileStream file(_T("test.txt"), FileMode_Create, FileAccess_Write);
+	lexer.GetTokenList().DumpText(&file);
+
+
+
 
 	/*	TODO
 			・今、Token の begin end は元のバッファを参照しているだけ。

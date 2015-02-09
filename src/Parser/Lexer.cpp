@@ -1,5 +1,5 @@
 
-#include <Lumino/Base/UnicodeUtils.h>
+#include <Lumino/Text/UnicodeUtils.h>
 #include "../../include/Lumino/Parser/Lexer.h"
 #include "../../include/Lumino/Parser/ErrorInfo.h"
 
@@ -51,7 +51,7 @@ void Lexer<TChar>::Analyze(RefBuffer* buffer, ErrorManager* errorManager)
 	m_errorManager = errorManager;
 
 	// 最悪のパターンで容量確保
-	m_tokenList.reserve(buffer->GetSize());
+	m_tokenList.Reserve(buffer->GetSize());
 
 	m_cursor = (TChar*)buffer->GetPointer();
 	m_bufferEnd = m_cursor + buffer->GetSize();
@@ -70,7 +70,7 @@ void Lexer<TChar>::Analyze(RefBuffer* buffer, ErrorManager* errorManager)
 	}
 
 	// 最後に EOF を入れておく
-	m_tokenList.push_back(Token<TChar>(TokenType_EOF, m_bufferEnd, m_bufferEnd + 1));
+	m_tokenList.Add(Token<TChar>(TokenType_EOF, m_bufferEnd, m_bufferEnd + 1));
 }
 
 //-----------------------------------------------------------------------------
@@ -82,13 +82,13 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 	// 空白並び
 	int count = ReadSpaceSequence(buffer);
 	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_SpaceSequence, buffer, buffer + count));
+		m_tokenList.Add(Token<TChar>(TokenType_SpaceSequence, buffer, buffer + count));
 		return count;
 	}
 	// 改行
 	count = ReadNewLine(buffer);
 	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_NewLine, buffer, buffer + count));
+		m_tokenList.Add(Token<TChar>(TokenType_NewLine, buffer, buffer + count));
 		return count;
 	}
 	// 予約語
@@ -99,13 +99,13 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 	// 識別子
 	count = ReadIdentifier(buffer);
 	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_Identifier, buffer, buffer + count));
+		m_tokenList.Add(Token<TChar>(TokenType_Identifier, buffer, buffer + count));
 		return count;
 	}
 	// 数値リテラル
 	count = ReadNumericLiteral(buffer);
 	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_NumericLiteral, buffer, buffer + count));
+		m_tokenList.Add(Token<TChar>(TokenType_NumericLiteral, buffer, buffer + count));
 		return count;
 	}
 	// 文字列リテラル
@@ -116,13 +116,13 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 	// コメント (演算子よりも優先する)
 	count = ReadComment(buffer);
 	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_Comment, buffer, buffer + count));
+		m_tokenList.Add(Token<TChar>(TokenType_Comment, buffer, buffer + count));
 		return count;
 	}
 	// 演算子
 	count = ReadOperator(buffer);
 	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_Operator, buffer, buffer + count));
+		m_tokenList.Add(Token<TChar>(TokenType_Operator, buffer, buffer + count));
 		return count;
 	}
 	// プリプロセッサディレクティブ
@@ -134,13 +134,13 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 	// 行末 \ 
 	count = ReadEscNewLine(buffer);
 	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_EscNewLine, buffer, buffer + count));
+		m_tokenList.Add(Token<TChar>(TokenType_EscNewLine, buffer, buffer + count));
 		return count;
 	}
 	// マルチバイト文字並び
 	count = ReadMBSSequence(buffer);
 	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_MBSSequence, buffer, buffer + count));
+		m_tokenList.Add(Token<TChar>(TokenType_MBSSequence, buffer, buffer + count));
 		return count;
 	}
 	// 不明なトークンが見つかった
@@ -218,7 +218,7 @@ int Lexer<TChar>::ReadKeyword(const TChar* buffer)
 	int lnagTokenType = 0;
 	int count = CheckKeyword(buffer, &lnagTokenType);
 	if (count > 0) {
-		m_tokenList.push_back(Token<TChar>(TokenType_Keyword, lnagTokenType, buffer, buffer + count));
+		m_tokenList.Add(Token<TChar>(TokenType_Keyword, lnagTokenType, buffer, buffer + count));
 	}
 	return count;
 }
@@ -384,7 +384,7 @@ int Lexer<TChar>::ReadCharOrStringLiteral(const TChar* buffer)
 
 	Token<TChar> token(TokenType_CharOrStringLiteral, buffer, pPos);
 	token.SetStringValue(buffer + startCount, pPos - endCount);
-	m_tokenList.push_back(token);
+	m_tokenList.Add(token);
 
 	return pPos - buffer;
 }

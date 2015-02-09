@@ -13,10 +13,10 @@ template<typename TChar>
 class SimpleCppIncludePreprocessor
 {
 public:
-	typename typedef Token<TChar>			TokenT;
-	typename typedef Array< Token<TChar> >	TokenList;
-	typename typedef Array< Token<TChar> >::const_iterator Position;
-	typename typedef BasicPathName<TChar>	PathNameT;
+	typename typedef Token<TChar>				TokenT;
+	typename typedef TokenList<TChar>			TokenListT;
+	typename typedef TokenListT::const_iterator Position;
+	typename typedef BasicPathName<TChar>		PathNameT;
 
 public:
 	struct SettingData
@@ -25,7 +25,7 @@ public:
 	};
 
 public:
-	void Analyze(TokenList* tokenList, const SettingData& settingData, ErrorManager* errorManager);
+	void Analyze(TokenListT* tokenList, const SettingData& settingData, ErrorManager* errorManager);
 
 private:
 	bool ParseIncludeLine(Position posSharp, Position* outLineHead, Position* outLineEnd, Position* outFilePath);

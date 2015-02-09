@@ -16,7 +16,7 @@ namespace Parser
 //
 //-----------------------------------------------------------------------------
 template<typename TChar>
-void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenList* tokenList, const SettingData& settingData, ErrorManager* errorManager)
+void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const SettingData& settingData, ErrorManager* errorManager)
 {
 	m_currentDirectory = settingData.CurrentDirectory.GetCStr();
 	m_errorManager = errorManager;
@@ -47,7 +47,13 @@ void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenList* tokenList, const Se
 
 				CppLexer<TChar> lexer;
 				lexer.Analyze(fileData, m_errorManager);
-				TokenList& tokens = lexer.GetTokenList();
+				TokenListT& tokens = lexer.GetTokenList();
+				tokens.CloneTokenStrings();		// fileData の参照を切る
+
+				// lineHead は '#'、lineEnd は '\n' を指している。
+				// lineEnd の前までを削除する。→ \n が残ることになり、pos は '\n' を指す。
+				// erase が完了すると lineHead、lineEnd は無効なイテレータになるので注意。
+				pos = tokenList->erase(lineHead, lineEnd);
 
 				// この時点で pos は NewLine の次を指している。
 				// 戻り値は新たに挿入された最初の要素を指すイテレータ
@@ -79,6 +85,7 @@ bool SimpleCppIncludePreprocessor<TChar>::ParseIncludeLine(Position posSharp, Po
 	// #
 	//pos = GetNextGenericToken(newLinePos);
 	if (!pos->EqualChar('#')) return false;
+	*outLineHead = pos;
 
 	// include
 	pos = GetNextGenericToken(pos);
@@ -92,6 +99,7 @@ bool SimpleCppIncludePreprocessor<TChar>::ParseIncludeLine(Position posSharp, Po
 	// 改行
 	pos = GetNextGenericToken(pos);
 	if (!pos->IsLineEnd()) return false;
+	*outLineEnd = pos;
 
 	return true;
 }

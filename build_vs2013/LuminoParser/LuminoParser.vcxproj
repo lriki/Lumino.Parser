@@ -22,7 +22,9 @@
     <ClInclude Include="..\..\include\Lumino\Parser\CppLexer.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\ErrorInfo.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\Lexer.h" />
+    <ClInclude Include="..\..\include\Lumino\Parser\String.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\Token.h" />
+    <ClInclude Include="..\..\include\Lumino\Parser\TokenList.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\Tools\SimpleCppIncludePreprocessor.h" />
     <ClInclude Include="..\..\src\Parser\Cpp\CppPreprocessor.h" />
     <ClInclude Include="..\..\src\Parser\ParserUtils.h" />

@@ -2,7 +2,7 @@
 #pragma once
 
 #include <Lumino/Base/RefBuffer.h>
-#include "Token.h"
+#include "TokenList.h"
 
 namespace Lumino
 {
@@ -25,7 +25,7 @@ template<typename TChar>
 class Lexer
 {
 public:
-	typename typedef Array< Token<TChar> > TokenList;
+	typename typedef TokenList<TChar> TokenListT;
 
 
 public:
@@ -33,7 +33,7 @@ public:
 	virtual ~Lexer(){}
 
 	void Analyze(RefBuffer* buffer, ErrorManager* errorManager);
-	TokenList& GetTokenList() { return m_tokenList; }
+	TokenListT& GetTokenList() { return m_tokenList; }
 
 
 private:
@@ -85,7 +85,7 @@ protected:
 private:
 	TChar*			m_cursor;
 	TChar*			m_bufferEnd;	// 入力バッファの終端 (最後の文字の次(EOF)を指す)
-	TokenList		m_tokenList;
+	TokenListT		m_tokenList;
 	ErrorManager*	m_errorManager;
 };
 
