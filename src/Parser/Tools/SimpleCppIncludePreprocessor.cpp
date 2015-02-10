@@ -49,6 +49,10 @@ void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const S
 				lexer.Analyze(fileData, m_errorManager);
 				TokenListT& tokens = lexer.GetTokenList();
 				tokens.CloneTokenStrings();		// fileData の参照を切る
+				SimpleCppIncludePreprocessor<TChar> prepro;
+				SimpleCppIncludePreprocessor<TChar>::SettingData preproSetting;
+				preproSetting.CurrentDirectory = filePath.GetParent();
+				prepro.Analyze(&tokens, preproSetting, m_errorManager);
 
 				// lineHead は '#'、lineEnd は '\n' を指している。
 				// lineEnd の前までを削除する。→ \n が残ることになり、pos は '\n' を指す。
