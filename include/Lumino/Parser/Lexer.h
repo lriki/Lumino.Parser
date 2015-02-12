@@ -33,7 +33,7 @@ public:
 	virtual ~Lexer(){}
 
 	void Analyze(RefBuffer* buffer, ErrorManager* errorManager);
-	TokenListT& GetTokenList() { return m_tokenList; }
+	TokenListT* GetTokenList() { return m_tokenList; }
 
 
 private:
@@ -55,6 +55,8 @@ private:
 
 	// 
 	//int		ReadHexLiteralStart(const TChar* buffer);		// 0x (BASICやるなんてこと名はいと思うけど &h とか $ とか)
+
+	//void	AddToken(TokenType type, int langTokenType, const TChar* begin, const TChar* end);
 
 protected:
 	AlphaNumType GetAlphaNumType(TChar ch);
@@ -83,10 +85,10 @@ protected:
 	virtual void PollingToken(Token<TChar>& token) {}
 
 private:
-	TChar*			m_cursor;
-	TChar*			m_bufferEnd;	// 入力バッファの終端 (最後の文字の次(EOF)を指す)
-	TokenListT		m_tokenList;
-	ErrorManager*	m_errorManager;
+	TChar*				m_cursor;
+	TChar*				m_bufferEnd;	// 入力バッファの終端 (最後の文字の次(EOF)を指す)
+	RefPtr<TokenListT>	m_tokenList;
+	ErrorManager*		m_errorManager;
 };
 
 } // namespace Parser

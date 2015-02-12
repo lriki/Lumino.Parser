@@ -20,6 +20,6 @@ TEST_F(Test_CppLexer, Basic)
 	Parser::CppLexer<char> lexer;
 	lexer.Analyze(&buffer, &err);
 
-	Parser::CppLexer<char>::TokenListT& tokens = lexer.GetTokenList();
+	Parser::CppLexer<char>::TokenListT* tokens = lexer.GetTokenList();
 
 }

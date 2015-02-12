@@ -49,9 +49,10 @@ template<typename TChar>
 void Lexer<TChar>::Analyze(RefBuffer* buffer, ErrorManager* errorManager)
 {
 	m_errorManager = errorManager;
+	m_tokenList.Attach(LN_NEW TokenListT());
 
 	// 最悪のパターンで容量確保
-	m_tokenList.Reserve(buffer->GetSize());
+	m_tokenList->Reserve(buffer->GetSize());
 
 	m_cursor = (TChar*)buffer->GetPointer();
 	m_bufferEnd = m_cursor + buffer->GetSize();
@@ -65,12 +66,12 @@ void Lexer<TChar>::Analyze(RefBuffer* buffer, ErrorManager* errorManager)
 		}
 
 		// 新しく読み取られたトークンを通知する
-		PollingToken(m_tokenList.GetLast());
+		PollingToken(m_tokenList->GetLast());
 		m_cursor += nLen;
 	}
 
 	// 最後に EOF を入れておく
-	m_tokenList.Add(Token<TChar>(TokenType_EOF, m_bufferEnd, m_bufferEnd + 1));
+	m_tokenList->Add(Token<TChar>(TokenType_EOF, m_bufferEnd, m_bufferEnd + 1));
 }
 
 //-----------------------------------------------------------------------------
@@ -79,33 +80,24 @@ void Lexer<TChar>::Analyze(RefBuffer* buffer, ErrorManager* errorManager)
 template<typename TChar>
 int Lexer<TChar>::ReadToken(const TChar* buffer)
 {
+	int count;
+
 	// 空白並び
-	int count = ReadSpaceSequence(buffer);
-	if (count > 0) {
-		m_tokenList.Add(Token<TChar>(TokenType_SpaceSequence, buffer, buffer + count));
-		return count;
-	}
+	count = ReadSpaceSequence(buffer);
+	if (count > 0) { return count; }
 	// 改行
 	count = ReadNewLine(buffer);
-	if (count > 0) {
-		m_tokenList.Add(Token<TChar>(TokenType_NewLine, buffer, buffer + count));
-		return count;
-	}
+	if (count > 0) { return count; }
 	// 予約語
 	count = ReadKeyword(buffer);
-	if (count > 0) {
-		return count;
-	}
+	if (count > 0) { return count; }
 	// 識別子
 	count = ReadIdentifier(buffer);
-	if (count > 0) {
-		m_tokenList.Add(Token<TChar>(TokenType_Identifier, buffer, buffer + count));
-		return count;
-	}
+	if (count > 0) { return count; }
 	// 数値リテラル
 	count = ReadNumericLiteral(buffer);
 	if (count > 0) {
-		m_tokenList.Add(Token<TChar>(TokenType_NumericLiteral, buffer, buffer + count));
+		m_tokenList->Add(Token<TChar>(TokenType_NumericLiteral, buffer, buffer + count));
 		return count;
 	}
 	// 文字列リテラル
@@ -116,13 +108,13 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 	// コメント (演算子よりも優先する)
 	count = ReadComment(buffer);
 	if (count > 0) {
-		m_tokenList.Add(Token<TChar>(TokenType_Comment, buffer, buffer + count));
+		m_tokenList->Add(Token<TChar>(TokenType_Comment, buffer, buffer + count));
 		return count;
 	}
 	// 演算子
 	count = ReadOperator(buffer);
 	if (count > 0) {
-		m_tokenList.Add(Token<TChar>(TokenType_Operator, buffer, buffer + count));
+		m_tokenList->Add(Token<TChar>(TokenType_Operator, buffer, buffer + count));
 		return count;
 	}
 	// プリプロセッサディレクティブ
@@ -134,13 +126,13 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 	// 行末 \ 
 	count = ReadEscNewLine(buffer);
 	if (count > 0) {
-		m_tokenList.Add(Token<TChar>(TokenType_EscNewLine, buffer, buffer + count));
+		m_tokenList->Add(Token<TChar>(TokenType_EscNewLine, buffer, buffer + count));
 		return count;
 	}
 	// マルチバイト文字並び
 	count = ReadMBSSequence(buffer);
 	if (count > 0) {
-		m_tokenList.Add(Token<TChar>(TokenType_MBSSequence, buffer, buffer + count));
+		m_tokenList->Add(Token<TChar>(TokenType_MBSSequence, buffer, buffer + count));
 		return count;
 	}
 	// 不明なトークンが見つかった
@@ -156,16 +148,21 @@ int Lexer<TChar>::ReadSpaceSequence(const TChar* buffer)
 {
 	// 連続するスペース文字の数を返す
 	// (全角スペースを許容する場合はそれ全体の文字数もカウント)
-	const TChar* pPos = buffer;
-	while (pPos < m_bufferEnd)
+	const TChar* pos = buffer;
+	while (pos < m_bufferEnd)
 	{
-		int count = CheckSpaceChar(pPos);
+		int count = CheckSpaceChar(pos);
 		if (count == 0) {
 			break;
 		}
-		pPos += count;
+		pos += count;
 	}
-	return pPos - buffer;
+
+	// トークン作成
+	if (buffer < pos) {
+		m_tokenList->Add(Token<TChar>(TokenType_SpaceSequence, buffer, pos));
+	}
+	return pos - buffer;
 }
 
 //-----------------------------------------------------------------------------
@@ -174,14 +171,22 @@ int Lexer<TChar>::ReadSpaceSequence(const TChar* buffer)
 template<typename TChar>
 int Lexer<TChar>::ReadNewLine(const TChar* buffer)
 {
+	int count = 0;
 	if (buffer[0] == '\r' &&
-		buffer[1] == '\n'){
+		buffer[1] == '\n')
+	{
+		// トークン作成
+		m_tokenList->Add(Token<TChar>(TokenType_NewLine, buffer, buffer + 2));
 		return 2;
 	}
 	if (buffer[0] == '\n' ||
-		buffer[0] == '\n'){
+		buffer[0] == '\n')
+	{
+		// トークン作成
+		m_tokenList->Add(Token<TChar>(TokenType_NewLine, buffer, buffer + 1));
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -206,6 +211,9 @@ int Lexer<TChar>::ReadIdentifier(const TChar* buffer)
 			break;
 		pPos += count;
 	}
+
+	// トークン作成
+	m_tokenList->Add(Token<TChar>(TokenType_Identifier, buffer, pPos));
 	return pPos - buffer;
 }
 
@@ -218,7 +226,7 @@ int Lexer<TChar>::ReadKeyword(const TChar* buffer)
 	int lnagTokenType = 0;
 	int count = CheckKeyword(buffer, &lnagTokenType);
 	if (count > 0) {
-		m_tokenList.Add(Token<TChar>(TokenType_Keyword, lnagTokenType, buffer, buffer + count));
+		m_tokenList->Add(Token<TChar>(TokenType_Keyword, lnagTokenType, buffer, buffer + count));
 	}
 	return count;
 }
@@ -384,7 +392,7 @@ int Lexer<TChar>::ReadCharOrStringLiteral(const TChar* buffer)
 
 	Token<TChar> token(TokenType_CharOrStringLiteral, buffer, pPos);
 	token.SetStringValue(buffer + startCount, pPos - endCount);
-	m_tokenList.Add(token);
+	m_tokenList->Add(token);
 
 	return pPos - buffer;
 }
@@ -485,7 +493,7 @@ int Lexer<TChar>::ReadMBSSequence(const TChar* buffer)
 	while (pPos < m_bufferEnd)
 	{
 		int extraCount = 0;
-		UnicodeUtils::CheckUTF8TrailingBytes((const UnicodeUtils::UTF8*)pPos, (const UnicodeUtils::UTF8*)m_bufferEnd, false, &extraCount);
+		Text::UnicodeUtils::CheckUTF8TrailingBytes((const Text::UnicodeUtils::UTF8*)pPos, (const Text::UnicodeUtils::UTF8*)m_bufferEnd, false, &extraCount);
 
 		// 追加バイトが無い = シングルバイト文字だった場合は終了
 		if (extraCount == 0) {

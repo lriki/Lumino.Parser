@@ -1,10 +1,9 @@
 
 #pragma once
 
-
+#include <Lumino/Base/RefObject.h>
 #include <Lumino/IO/Stream.h>
 #include "Token.h"
-
 
 namespace Lumino
 {
@@ -12,7 +11,7 @@ namespace Parser
 {
 
 template<typename TChar>
-class TokenList
+class TokenList : public RefObject
 {
 public:
 	typedef typename Token<TChar>	TokenT;

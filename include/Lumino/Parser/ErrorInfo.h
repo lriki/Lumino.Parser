@@ -17,6 +17,8 @@ enum ErrorCode
 	ErrorCode_Error_UnknownToken,	///< 不明なトークンが見つかった
 
 
+
+
 };
 
 class ErrorItem

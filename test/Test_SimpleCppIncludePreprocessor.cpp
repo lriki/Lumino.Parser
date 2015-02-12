@@ -23,19 +23,28 @@ TEST_F(Test_SimpleCppIncludePreprocessor, Basic)
 
 	Parser::SimpleCppIncludePreprocessor<char>::SettingData setting;
 	setting.CurrentDirectory = curDir;
+	setting.ErrorManager = &err;
 	Parser::SimpleCppIncludePreprocessor<char> preprocessor;
-	preprocessor.Analyze(&lexer.GetTokenList(), setting, &err);
+	preprocessor.Analyze(lexer.GetTokenList(), setting);
 
-	FileStream file(_T("test.txt"), FileMode_Create, FileAccess_Write);
-	lexer.GetTokenList().DumpText(&file);
+	MemoryStream buf;
+	//FileStream buf(_T("test.txt"), FileMode_Create, FileAccess_Write);
+	lexer.GetTokenList()->DumpText(&buf);
 
+	ASSERT_TRUE(TestUtils::CheckArrays(buf.GetBuffer(), "int a;\nint c;\nint b;\nint d;", 27));
+}
 
+//-----------------------------------------------------------------------------
+// 行頭や # の後にスペースがあるパターン
+TEST_F(Test_SimpleCppIncludePreprocessor, LineHeadSpace)
+{
+	StringA text = "  #  include   \"SimpleCppIncludePreprocessor.txt\" ";
 
+	Parser::ErrorManager err;
+	Parser::SimpleCppIncludePreprocessor<char>::SettingData settings;
+	settings.CurrentDirectory = PathName(LN_TEST_GET_FILE_PATH("TestData"));
+	settings.ErrorManager = &err;
+	StringA result = Parser::SimpleCppIncludePreprocessor<char>::AnalyzeStringToString(text, settings);
 
-	/*	TODO
-			・今、Token の begin end は元のバッファを参照しているだけ。
-				→あるタイミングで切り離して独自メモリに持たないと、include ファイル結合できない。
-			・TokenList クラス作ってまとめた方がいい気がする。
-	 */
-
+	ASSERT_STREQ("int a;\nint c;\nint b;\nint d;", result.GetCStr());
 }

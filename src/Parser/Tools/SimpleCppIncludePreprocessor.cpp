@@ -1,5 +1,6 @@
 
 #include <Lumino/IO/FileUtils.h>
+#include <Lumino/IO/MemoryStream.h>
 #include "../../../include/Lumino/Parser/Tools/SimpleCppIncludePreprocessor.h"
 #include "../ParserUtils.h"
 
@@ -16,10 +17,10 @@ namespace Parser
 //
 //-----------------------------------------------------------------------------
 template<typename TChar>
-void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const SettingData& settingData, ErrorManager* errorManager)
+void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const SettingData& settingData)
 {
 	m_currentDirectory = settingData.CurrentDirectory.GetCStr();
-	m_errorManager = errorManager;
+	m_errorManager = settingData.ErrorManager;
 
 	Position pos = tokenList->begin();
 	Position end = tokenList->end();
@@ -42,17 +43,19 @@ void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const S
 			if (ParseIncludeLine(pos, &lineHead, &lineEnd, &headerNameToken))
 			{
 				// #includeが見つかった
-				PathNameT filePath(m_currentDirectory, headerNameToken->GetStringValue());
-				RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(filePath));
+				AnalyzeFileToTokenList(settingData);
+				//PathNameT filePath(m_currentDirectory, headerNameToken->GetStringValue());
+				//RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(filePath));
 
-				CppLexer<TChar> lexer;
-				lexer.Analyze(fileData, m_errorManager);
-				TokenListT& tokens = lexer.GetTokenList();
-				tokens.CloneTokenStrings();		// fileData の参照を切る
-				SimpleCppIncludePreprocessor<TChar> prepro;
-				SimpleCppIncludePreprocessor<TChar>::SettingData preproSetting;
-				preproSetting.CurrentDirectory = filePath.GetParent();
-				prepro.Analyze(&tokens, preproSetting, m_errorManager);
+				//CppLexer<TChar> lexer;
+				//lexer.Analyze(fileData, m_errorManager);
+				//TokenListT* tokens = lexer.GetTokenList();
+				//tokens->CloneTokenStrings();		// fileData の参照を切る
+				//SimpleCppIncludePreprocessor<TChar> prepro;
+				//SimpleCppIncludePreprocessor<TChar>::SettingData preproSetting;
+				//preproSetting.CurrentDirectory = filePath.GetParent();
+				//preproSetting.ErrorManager = m_errorManager;
+				//prepro.Analyze(tokens, preproSetting);
 
 				// lineHead は '#'、lineEnd は '\n' を指している。
 				// lineEnd の前までを削除する。→ \n が残ることになり、pos は '\n' を指す。
@@ -61,8 +64,8 @@ void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const S
 
 				// この時点で pos は NewLine の次を指している。
 				// 戻り値は新たに挿入された最初の要素を指すイテレータ
-				pos = tokenList->insert(pos, tokens.begin(), tokens.end() - 1);	// 終端には必ず EOF があるので end() -1
-				pos += tokens.size() - 1;		// サイズ分進めることで、次のトークン位置に行く (-1 はメインループの最後の ++pos の分)
+				pos = tokenList->insert(pos, tokens->begin(), tokens->end() - 1);	// 終端には必ず EOF があるので end() -1
+				pos += tokens->size() - 1;		// サイズ分進めることで、次のトークン位置に行く (-1 はメインループの最後の ++pos の分)
 
 				// 終端イテレータも更新する
 				end = tokenList->end();
@@ -82,14 +85,60 @@ void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const S
 //
 //-----------------------------------------------------------------------------
 template<typename TChar>
-bool SimpleCppIncludePreprocessor<TChar>::ParseIncludeLine(Position posSharp, Position* outLineHead, Position* outLineEnd, Position* outFilePath)
+typename SimpleCppIncludePreprocessor<TChar>::TokenListT* SimpleCppIncludePreprocessor<TChar>::AnalyzeFileToTokenList(const PathNameT& filePath, const SettingData& settingData)
 {
-	Position pos = posSharp;
+	/* settingData.CurrentDirectory は無視する。
+	 * これはファイパスを受け取らない Analyze() 用に用意したもので、
+	 * ファイルパスを受け取れるこの関数では必要ないもの。
+	 * 考慮してしまうとかえって混乱の元になる。
+	 */
 
+
+	//PathNameT filePath(m_currentDirectory, headerNameToken->GetStringValue());
+	RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(filePath));
+
+	CppLexer<TChar> lexer;
+	lexer.Analyze(fileData, m_errorManager);
+	TokenListT* tokens = lexer.GetTokenList();
+	tokens->CloneTokenStrings();		// fileData の参照を切る
+	SimpleCppIncludePreprocessor<TChar> prepro;
+	SimpleCppIncludePreprocessor<TChar>::SettingData preproSetting;
+	preproSetting.CurrentDirectory = filePath.GetParent();
+	preproSetting.ErrorManager = m_errorManager;
+	prepro.Analyze(tokens, preproSetting);
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+template<typename TChar>
+typename SimpleCppIncludePreprocessor<TChar>::StringT SimpleCppIncludePreprocessor<TChar>::AnalyzeStringToString(const StringT& text, const SettingData& settingData)
+{
+	RefBuffer buffer;
+	buffer.Reserve((byte_t*)text.GetCStr(), text.GetByteCount());
+
+	CppLexer<TChar> lexer;
+	lexer.Analyze(&buffer, settingData.ErrorManager);
+
+	SimpleCppIncludePreprocessor<TChar> prepro;
+	prepro.Analyze(lexer.GetTokenList(), settingData);
+
+	MemoryStream stream;
+	lexer.GetTokenList()->DumpText(&stream);
+
+	return StringT((TChar*)stream.GetBuffer(), stream.GetSize() / sizeof(TChar));
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+template<typename TChar>
+bool SimpleCppIncludePreprocessor<TChar>::ParseIncludeLine(Position posLineHead, Position* outLineHead, Position* outLineEnd, Position* outFilePath)
+{
 	// #
-	//pos = GetNextGenericToken(newLinePos);
+	Position pos = SkipGenericSpace(posLineHead);
 	if (!pos->EqualChar('#')) return false;
-	*outLineHead = pos;
+	*outLineHead = posLineHead;
 
 	// include
 	pos = GetNextGenericToken(pos);
@@ -106,6 +155,22 @@ bool SimpleCppIncludePreprocessor<TChar>::ParseIncludeLine(Position posSharp, Po
 	*outLineEnd = pos;
 
 	return true;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+template<typename TChar>
+typename SimpleCppIncludePreprocessor<TChar>::Position SimpleCppIncludePreprocessor<TChar>::SkipGenericSpace(Position pos)
+{
+	while (!pos->IsEOF())
+	{
+		if (!IsGenericSpace(*pos)) {
+			return pos;
+		}
+		++pos;
+	}
+	return pos;
 }
 
 //-----------------------------------------------------------------------------
