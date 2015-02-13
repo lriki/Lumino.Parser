@@ -1,6 +1,7 @@
 
 #include <Lumino/IO/FileUtils.h>
 #include <Lumino/IO/MemoryStream.h>
+#include <Lumino/Text/EncodingDetector.h>
 #include "../../../include/Lumino/Parser/Tools/SimpleCppIncludePreprocessor.h"
 #include "../ParserUtils.h"
 
@@ -22,10 +23,56 @@ void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const S
 	m_currentDirectory = settingData.CurrentDirectory.GetCStr();
 	m_errorManager = settingData.ErrorManager;
 
+	AnalyzeTokenList(tokenList, m_currentDirectory, 0);
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+template<typename TChar>
+typename bool SimpleCppIncludePreprocessor<TChar>::LoadIncludeFile(const PathNameT& filePath, int includeNest, TokenListPtr* outTokens)
+{
+	// ファイルを開く
+	// TODO:ちゃんと解析するなら、ここで -I のリストと結合しつつファイル検索する。
+	if (!FileUtils::Exists(filePath)) {
+		return false;
+	}
+	RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(filePath));
+
+	// 文字コード判別 (BOM を消す意味でも文字コード自動判別は必須)
+	Text::EncodingDetector detector;
+	Text::EncodingType charCode = detector.Detect(fileData->GetPointer(), fileData->GetSize());
+	Text::Encoding* enc = Text::Encoding::GetEncoding(charCode);
+
+	// TChar へ文字コード変換
+	Text::EncodingConversionResult result;
+	RefPtr<RefBuffer> code(
+		Text::Encoding::Convert(fileData->GetPointer(), fileData->GetSize(), enc, Text::Encoding::GetEncodingTemplate<TChar>(), &result));
+
+	// lex
+	CppLexer<TChar> lexer;
+	lexer.Analyze(code, m_errorManager);
+	TokenListPtr tokens(lexer.GetTokenList(), true);
+	tokens->CloneTokenStrings();		// code の参照を切る
+
+	// 再帰で解析
+	AnalyzeTokenList(tokens, filePath.GetParent(), includeNest + 1);
+
+	outTokens->Attach(tokens, true);
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+template<typename TChar>
+void SimpleCppIncludePreprocessor<TChar>::AnalyzeTokenList(TokenListT* tokenList, const PathNameT& currentDirecotry, int includeNest)
+{
 	Position pos = tokenList->begin();
 	Position end = tokenList->end();
 
 	bool justSawNewLine = true;	// 改行直後かどうか。コード先頭は改行直後とする。
+	int lineNumber = 0;
 
 	while (pos != end)
 	{
@@ -33,6 +80,7 @@ void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const S
 		if (pos->GetTokenType() == TokenType_NewLine)
 		{
 			justSawNewLine = true;
+			lineNumber++;
 		}
 		// 改行直後だった場合は #include を探す
 		else if (justSawNewLine)
@@ -42,33 +90,29 @@ void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const S
 			Position headerNameToken;
 			if (ParseIncludeLine(pos, &lineHead, &lineEnd, &headerNameToken))
 			{
-				// #includeが見つかった
-				AnalyzeFileToTokenList(settingData);
-				//PathNameT filePath(m_currentDirectory, headerNameToken->GetStringValue());
-				//RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(filePath));
+				// #includeが見つかったので、include ファイルを読み込み、トークンリストを取得する
+				PathNameT filePath(currentDirecotry, headerNameToken->GetStringValue());
+				TokenListPtr includeTokens;
+				if (LoadIncludeFile(filePath, includeNest + 1, &includeTokens))	// lineNumber はエラー出力用
+				{
+					// lineHead は '#'、lineEnd は '\n' を指している。
+					// lineEnd の前までを削除する。→ \n が残ることになり、pos は '\n' を指す。
+					// erase が完了すると lineHead、lineEnd は無効なイテレータになるので注意。
+					pos = tokenList->erase(lineHead, lineEnd);
 
-				//CppLexer<TChar> lexer;
-				//lexer.Analyze(fileData, m_errorManager);
-				//TokenListT* tokens = lexer.GetTokenList();
-				//tokens->CloneTokenStrings();		// fileData の参照を切る
-				//SimpleCppIncludePreprocessor<TChar> prepro;
-				//SimpleCppIncludePreprocessor<TChar>::SettingData preproSetting;
-				//preproSetting.CurrentDirectory = filePath.GetParent();
-				//preproSetting.ErrorManager = m_errorManager;
-				//prepro.Analyze(tokens, preproSetting);
+					// この時点で pos は NewLine の次を指している。
+					// 戻り値は新たに挿入された最初の要素を指すイテレータ
+					pos = tokenList->insert(pos, includeTokens->begin(), includeTokens->end() - 1);	// 終端には必ず EOF があるので end() -1
+					pos += includeTokens->size() - 1;		// サイズ分進めることで、次のトークン位置に行く (-1 はメインループの最後の ++pos の分)
 
-				// lineHead は '#'、lineEnd は '\n' を指している。
-				// lineEnd の前までを削除する。→ \n が残ることになり、pos は '\n' を指す。
-				// erase が完了すると lineHead、lineEnd は無効なイテレータになるので注意。
-				pos = tokenList->erase(lineHead, lineEnd);
+					// 終端イテレータも更新する
+					end = tokenList->end();
+				}
+				else {
+					// include ファイルが見つからなければ置換しないで続行する
+					//m_errorManager->AddError(ErrorCode_Warning_FileNotFound, lineNumber);
 
-				// この時点で pos は NewLine の次を指している。
-				// 戻り値は新たに挿入された最初の要素を指すイテレータ
-				pos = tokenList->insert(pos, tokens->begin(), tokens->end() - 1);	// 終端には必ず EOF があるので end() -1
-				pos += tokens->size() - 1;		// サイズ分進めることで、次のトークン位置に行く (-1 はメインループの最後の ++pos の分)
-
-				// 終端イテレータも更新する
-				end = tokenList->end();
+				}
 			}
 
 			justSawNewLine = false;
@@ -79,33 +123,6 @@ void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const S
 
 		++pos;
 	}
-}
-
-//-----------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------
-template<typename TChar>
-typename SimpleCppIncludePreprocessor<TChar>::TokenListT* SimpleCppIncludePreprocessor<TChar>::AnalyzeFileToTokenList(const PathNameT& filePath, const SettingData& settingData)
-{
-	/* settingData.CurrentDirectory は無視する。
-	 * これはファイパスを受け取らない Analyze() 用に用意したもので、
-	 * ファイルパスを受け取れるこの関数では必要ないもの。
-	 * 考慮してしまうとかえって混乱の元になる。
-	 */
-
-
-	//PathNameT filePath(m_currentDirectory, headerNameToken->GetStringValue());
-	RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(filePath));
-
-	CppLexer<TChar> lexer;
-	lexer.Analyze(fileData, m_errorManager);
-	TokenListT* tokens = lexer.GetTokenList();
-	tokens->CloneTokenStrings();		// fileData の参照を切る
-	SimpleCppIncludePreprocessor<TChar> prepro;
-	SimpleCppIncludePreprocessor<TChar>::SettingData preproSetting;
-	preproSetting.CurrentDirectory = filePath.GetParent();
-	preproSetting.ErrorManager = m_errorManager;
-	prepro.Analyze(tokens, preproSetting);
 }
 
 //-----------------------------------------------------------------------------

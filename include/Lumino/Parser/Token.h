@@ -69,6 +69,7 @@ public:
 		m_end = NULL;
 		m_beginStringValue = NULL;
 		m_endStringValue = NULL;
+		m_staticBuffer[0] = 0x00;
 		m_dynamicBuffer = NULL;
 	}
 
@@ -160,6 +161,8 @@ public:
 
 	void CloneTokenStrings()
 	{
+		if (m_begin == m_staticBuffer || m_dynamicBuffer != NULL) { return; }	// すでに Clone 済み
+
 		TChar* newBegin;
 		size_t len = GetLength();
 		// 32 文字に収まるトークン長さであれば static にコピーし、それを参照する
