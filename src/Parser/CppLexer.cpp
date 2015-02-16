@@ -272,6 +272,9 @@ int CppLexer<TChar>::CheckStringEnd(const TChar* buffer, const TChar* pStart)
 {
 	if (buffer[0] == pStart[0])
 		return 1;
+	// include ディレクティブ内であれば <> も文字列扱いする。
+	if (m_seqPreProInclude == PreProIncludeSeq_FoundInclude && buffer[0] == '>')
+		return 1;
 	return 0;
 }
 

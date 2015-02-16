@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <Lumino/IO/PathName.h>
+#include "../../../../external/Lumino.Core/include/Lumino/IO/PathName.h"
 #include "../CppLexer.h"
 
 namespace Lumino
@@ -28,13 +28,18 @@ public:
 	};
 
 public:
-	void Analyze(TokenListT* tokenList, const SettingData& settingData);
+	void Analyze(const PathName& fileFullPath, ErrorManager* errorManager);
+	TokenListT* GetTokenList() { return m_tokenList; }
+
+
+private:
+	//void Analyze(TokenListT* tokenList, const SettingData& settingData);
 
 
 	/// (settingData.CurrentDirectory は無視されます)
 	//TokenListT* AnalyzeFileToTokenList(const PathNameT& filePath);
 
-	static StringT AnalyzeStringToString(const StringT& text, const SettingData& settingData);
+	//static StringT AnalyzeStringToString(const StringT& text, const SettingData& settingData);
 
 private:
 	//struct IncludeFileInfo
@@ -43,7 +48,9 @@ private:
 	//	PathNameT CurrentDirectory;
 	//};
 
-	bool LoadIncludeFile(const PathNameT& filePath, int includeNest, TokenListPtr* outTokens);
+	bool CheckLoadedIncludeFile(const PathNameT& fileFullPath) const { return m_loadedIncludeFileNames.Contains(fileFullPath); }
+
+	bool LoadIncludeFile(const PathNameT& fileFullPath, int includeNest, TokenListPtr* outTokens);
 
 	void AnalyzeTokenList(TokenListT* tokenList, const PathNameT& currentDirecotry, int includeNest);	// 解析メイン。再起呼び出し
 
@@ -57,6 +64,8 @@ private:
 	ErrorManager*		m_errorManager;
 	PathNameT			m_currentDirectory;
 	//int					m_lineNumber;
+	Array<PathNameT>	m_loadedIncludeFileNames;	///< auto pragma once マーク済み (読み込み済み) include ファイル名リスト
+	RefPtr<TokenListT>	m_tokenList;
 };
 
 } // namespace Parser

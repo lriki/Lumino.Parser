@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include <Lumino/Base/RefObject.h>
-#include <Lumino/IO/Stream.h>
+#include "../../../external/Lumino.Core/include/Lumino/Base/RefObject.h"
+#include "../../../external/Lumino.Core/include/Lumino/IO/Stream.h"
 #include "Token.h"
 
 namespace Lumino

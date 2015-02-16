@@ -2,9 +2,9 @@
 #pragma once
 
 #include <stack>
-#include <Lumino/Base/RefBuffer.h>
-#include <Lumino/Base/Array.h>
-#include <Lumino/IO/PathName.h>
+#include "../../../external/Lumino.Core/include/Lumino/Base/RefBuffer.h"
+#include "../../../external/Lumino.Core/include/Lumino/Base/Array.h"
+#include "../../../external/Lumino.Core/include/Lumino/IO/PathName.h"
 #include "Token.h"
 
 namespace Lumino

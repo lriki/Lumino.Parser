@@ -2,9 +2,10 @@
 #pragma once
 
 #include <memory>
-#include <Lumino/Base/Array.h>
-#include <Lumino/Base/String.h>
-#include <Lumino/Base/StringUtils.h>
+#include "../../../external/Lumino.Core/include/Lumino/Base/RefBuffer.h"
+#include "../../../external/Lumino.Core/include/Lumino/Base/Array.h"
+#include "../../../external/Lumino.Core/include/Lumino/Base/String.h"
+#include "../../../external/Lumino.Core/include/Lumino/Base/StringUtils.h"
 
 namespace Lumino
 {

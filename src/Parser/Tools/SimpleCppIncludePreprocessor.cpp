@@ -18,26 +18,60 @@ namespace Parser
 //
 //-----------------------------------------------------------------------------
 template<typename TChar>
-void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const SettingData& settingData)
+void SimpleCppIncludePreprocessor<TChar>::Analyze(const PathName& fileFullPath, ErrorManager* errorManager)
 {
-	m_currentDirectory = settingData.CurrentDirectory.GetCStr();
-	m_errorManager = settingData.ErrorManager;
+	m_errorManager = errorManager;
 
-	AnalyzeTokenList(tokenList, m_currentDirectory, 0);
+	// ファイルを開く
+	RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(fileFullPath));
+
+	// 文字コード判別 (BOM を消す意味でも文字コード自動判別は必須)
+	Text::EncodingDetector detector;
+	Text::EncodingType charCode = detector.Detect(fileData->GetPointer(), fileData->GetSize());
+	Text::Encoding* enc = Text::Encoding::GetEncoding(charCode);
+
+	// TChar へ文字コード変換
+	Text::EncodingConversionResult result;
+	RefPtr<RefBuffer> code(
+		Text::Encoding::Convert(fileData->GetPointer(), fileData->GetSize(), enc, Text::Encoding::GetEncodingTemplate<TChar>(), &result));
+
+	// lex
+	CppLexer<TChar> lexer;
+	lexer.Analyze(code, m_errorManager);
+	TokenListPtr tokenList(lexer.GetTokenList(), true);
+	tokenList->CloneTokenStrings();		// code の参照を切る
+
+	// 解析開始
+	PathNameT dir(fileFullPath.GetParent());
+	AnalyzeTokenList(tokenList, dir, 0);
+
+	m_tokenList = tokenList;
 }
 
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
+//template<typename TChar>
+//void SimpleCppIncludePreprocessor<TChar>::Analyze(TokenListT* tokenList, const SettingData& settingData)
+//{
+//	m_currentDirectory = settingData.CurrentDirectory.GetCStr();
+//	m_errorManager = settingData.ErrorManager;
+//
+//	AnalyzeTokenList(tokenList, m_currentDirectory, 0);
+//}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
 template<typename TChar>
-typename bool SimpleCppIncludePreprocessor<TChar>::LoadIncludeFile(const PathNameT& filePath, int includeNest, TokenListPtr* outTokens)
+typename bool SimpleCppIncludePreprocessor<TChar>::LoadIncludeFile(const PathNameT& fileFullPath, int includeNest, TokenListPtr* outTokens)
 {
 	// ファイルを開く
 	// TODO:ちゃんと解析するなら、ここで -I のリストと結合しつつファイル検索する。
-	if (!FileUtils::Exists(filePath)) {
+	if (!FileUtils::Exists(fileFullPath)) {
 		return false;
 	}
-	RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(filePath));
+	RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(fileFullPath));
 
 	// 文字コード判別 (BOM を消す意味でも文字コード自動判別は必須)
 	Text::EncodingDetector detector;
@@ -56,7 +90,10 @@ typename bool SimpleCppIncludePreprocessor<TChar>::LoadIncludeFile(const PathNam
 	tokens->CloneTokenStrings();		// code の参照を切る
 
 	// 再帰で解析
-	AnalyzeTokenList(tokens, filePath.GetParent(), includeNest + 1);
+	AnalyzeTokenList(tokens, fileFullPath.GetParent(), includeNest + 1);
+
+	// 読み込み完了。pragma once チェック用リストへ
+	m_loadedIncludeFileNames.Add(fileFullPath);
 
 	outTokens->Attach(tokens, true);
 	return true;
@@ -91,31 +128,45 @@ void SimpleCppIncludePreprocessor<TChar>::AnalyzeTokenList(TokenListT* tokenList
 			if (ParseIncludeLine(pos, &lineHead, &lineEnd, &headerNameToken))
 			{
 				// #includeが見つかったので、include ファイルを読み込み、トークンリストを取得する
-				PathNameT filePath(currentDirecotry, headerNameToken->GetStringValue());
-				TokenListPtr includeTokens;
-				if (LoadIncludeFile(filePath, includeNest + 1, &includeTokens))	// lineNumber はエラー出力用
+				PathNameT fileFullPath(currentDirecotry, headerNameToken->GetStringValue());
+				fileFullPath = fileFullPath.CanonicalizePath();
+				printf("include : %s\n", fileFullPath.GetCStr());
+
+				if (CheckLoadedIncludeFile(fileFullPath))
 				{
-					// lineHead は '#'、lineEnd は '\n' を指している。
-					// lineEnd の前までを削除する。→ \n が残ることになり、pos は '\n' を指す。
-					// erase が完了すると lineHead、lineEnd は無効なイテレータになるので注意。
+					// すでに読み込み済みの include ファイルである。
+					// '#' ～ '\n' の前 までを削除する
 					pos = tokenList->erase(lineHead, lineEnd);
-
-					// この時点で pos は NewLine の次を指している。
-					// 戻り値は新たに挿入された最初の要素を指すイテレータ
-					pos = tokenList->insert(pos, includeTokens->begin(), includeTokens->end() - 1);	// 終端には必ず EOF があるので end() -1
-					pos += includeTokens->size() - 1;		// サイズ分進めることで、次のトークン位置に行く (-1 はメインループの最後の ++pos の分)
-
 					// 終端イテレータも更新する
 					end = tokenList->end();
 				}
-				else {
-					// include ファイルが見つからなければ置換しないで続行する
-					//m_errorManager->AddError(ErrorCode_Warning_FileNotFound, lineNumber);
+				else
+				{
+					TokenListPtr includeTokens;
+					if (LoadIncludeFile(fileFullPath, includeNest + 1, &includeTokens))	// lineNumber はエラー出力用
+					{
+						// lineHead は '#'、lineEnd は '\n' を指している。
+						// lineEnd の前までを削除する。→ \n が残ることになり、pos は '\n' を指す。
+						// erase が完了すると lineHead、lineEnd は無効なイテレータになるので注意。
+						pos = tokenList->erase(lineHead, lineEnd);
 
+						// この時点で pos は NewLine の次を指している。
+						// 戻り値は新たに挿入された最初の要素を指すイテレータ
+						pos = tokenList->insert(pos, includeTokens->begin(), includeTokens->end() - 1);	// 終端には必ず EOF があるので end() -1
+						pos += includeTokens->size() - 1;		// サイズ分進めることで、次のトークン位置に行く (-1 はメインループの最後の ++pos の分)
+
+						// 終端イテレータも更新する
+						end = tokenList->end();
+					}
+					else {
+						// include ファイルが見つからなければ置換しないで続行する
+						//m_errorManager->AddError(ErrorCode_Warning_FileNotFound, lineNumber);
+						printf("not found --->>> %s\n", fileFullPath.GetCStr());
+					}
 				}
 			}
 
-			justSawNewLine = false;
+			justSawNewLine = true;	// 改行直後状態維持
 		}
 		else {
 			justSawNewLine = false;
@@ -128,24 +179,24 @@ void SimpleCppIncludePreprocessor<TChar>::AnalyzeTokenList(TokenListT* tokenList
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-template<typename TChar>
-typename SimpleCppIncludePreprocessor<TChar>::StringT SimpleCppIncludePreprocessor<TChar>::AnalyzeStringToString(const StringT& text, const SettingData& settingData)
-{
-	RefBuffer buffer;
-	buffer.Reserve((byte_t*)text.GetCStr(), text.GetByteCount());
-
-	CppLexer<TChar> lexer;
-	lexer.Analyze(&buffer, settingData.ErrorManager);
-
-	SimpleCppIncludePreprocessor<TChar> prepro;
-	prepro.Analyze(lexer.GetTokenList(), settingData);
-
-	MemoryStream stream;
-	lexer.GetTokenList()->DumpText(&stream);
-
-	return StringT((TChar*)stream.GetBuffer(), stream.GetSize() / sizeof(TChar));
-}
-
+//template<typename TChar>
+//typename SimpleCppIncludePreprocessor<TChar>::StringT SimpleCppIncludePreprocessor<TChar>::AnalyzeStringToString(const StringT& text, const SettingData& settingData)
+//{
+//	RefBuffer buffer;
+//	buffer.Reserve((byte_t*)text.GetCStr(), text.GetByteCount());
+//
+//	CppLexer<TChar> lexer;
+//	lexer.Analyze(&buffer, settingData.ErrorManager);
+//
+//	SimpleCppIncludePreprocessor<TChar> prepro;
+//	prepro.Analyze(lexer.GetTokenList(), settingData);
+//
+//	MemoryStream stream;
+//	lexer.GetTokenList()->DumpText(&stream);
+//
+//	return StringT((TChar*)stream.GetBuffer(), stream.GetSize() / sizeof(TChar));
+//}
+//
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
