@@ -214,7 +214,7 @@ bool SimpleCppIncludePreprocessor<TChar>::ParseIncludeLine(Position posLineHead,
 
 	// •¶š—ñ
 	pos = GetNextGenericToken(pos);
-	if (pos->GetTokenType() != TokenType_CharOrStringLiteral) return false;
+	if (pos->GetTokenType() != TokenType_StringLiteral) return false;
 	*outFilePath = pos;
 
 	// ‰üs

@@ -13,7 +13,11 @@ enum CppTokenType
 {
 	TT_Cpp_Unknown = 0,
 
-	TT_CppKW_asm,
+	/* 1～255 は ASCII 文字とする (bison で文字リテラル '*' 等が使えるようになる) */
+
+	/* 以下は全て bison 定義ファイル内で %token としても定義する */
+
+	TT_CppKW_asm = 256,
 	TT_CppKW_auto,
 	TT_CppKW_bool,
 	TT_CppKW_break,
@@ -76,6 +80,81 @@ enum CppTokenType
 	TT_CppKW_volatile,
 	TT_CppKW_wchar_t,
 	TT_CppKW_while,
+
+	TT_CppOP_SeparatorBegin,	///< 以降は演算子
+	// operator
+	// 解析時は基本的に文字数の大きい方からトークン分割しないと、例えば + と ++ を間違えることがある。
+	// ※x+++++y is parsed as x ++ ++ + y,
+	TT_CppOP_SharpSharp,		// ## (concat)
+	TT_CppOP_Sharp,				// # (Prepro/stringize)
+	TT_CppOP_ArrowAsterisk,		// ->*
+	TT_CppOP_Arrow,				// ->
+	TT_CppOP_Comma,				// ,
+	TT_CppOP_Increment,			// ++
+	TT_CppOP_Decrement,			// --
+	TT_CppOP_LogicalAnd,		// &&
+	TT_CppOP_LogicalOr,			// ||
+	TT_CppOP_LessThenEqual,		// <=
+	TT_CppOP_GreaterThenEqual,	// >=
+	TT_CppOP_CmpEqual,			// ==
+	TT_CppOP_LeftShiftEqual,	// <<=
+	TT_CppOP_RightShiftEqual,	// >>=
+	TT_CppOP_PlusEqual,			// +=
+	TT_CppOP_MinusEqual,		// -=
+	TT_CppOP_MulEqual,			// *=
+	TT_CppOP_DivEqual,			// /=
+	TT_CppOP_ModEqual,			// %=
+	TT_CppOP_AndEqual,			// &=
+	TT_CppOP_OrEqual,			// |=
+	TT_CppOP_NotEqual,			// !=
+	TT_CppOP_Equal,				// =
+	TT_CppOP_LeftShift,			// <<
+	TT_CppOP_RightShift,		// >>
+	TT_CppOP_Plus,				// +
+	TT_CppOP_Minul,				// -
+	TT_CppOP_Asterisk,			// *
+	TT_CppOP_Slash,				// /
+	TT_CppOP_Parseint,			// %
+	TT_CppOP_Ampersand,			// &
+	TT_CppOP_Pipe,				// |
+	TT_CppOP_Tilde,				// ~
+	TT_CppOP_Caret,				// ^
+	TT_CppOP_Exclamation,		// !
+	TT_CppOP_Ellipsis,			// ...
+	TT_CppOP_DotAsterisk,		// .*
+	TT_CppOP_Dot,				// .
+	TT_CppOP_DoubleColon,		// ::
+	TT_CppOP_Question,			// ?
+	TT_CppOP_Colon,				// :
+	TT_CppOP_Semicolon,			// ;
+	TT_CppOP_LeftBrace,			// {
+	TT_CppOP_RightBrace,		// }
+	TT_CppOP_LeftBracket,		// [
+	TT_CppOP_RightBracket,		// ]
+	TT_CppOP_LeftParen,			// (
+	TT_CppOP_RightParen,		// )
+	TT_CppOP_LeftAngle,			// <
+	TT_CppOP_RightAngle,		// >
+
+	TT_CppOP_SeparatorEnd,			///< 以降は演算子
+
+	//<: :> <% %> %: %:%: ?= 
+	//and and_eq bitand bitor compl not not_eq
+	//or or_eq xor xor_eq
+
+	// new delete はキーワードとして扱う
+
+	/* ちなみに C++11 の演算子は以下の通り。トリグラフを含まなければ C++ と同じ
+	{ } [ ] # ## ( )
+	<: :> <% %> %: %:%: ; : ...
+	new delete ? :: . .*
+	+ - * / % ^ & | ~
+	! = < > += -= *= /= %=
+	^= &= |= << >> >>= <<= == !=
+	<= >= && || ++ -- , ->* ->
+	and and_eq bitand bitor compl not not_eq
+	or or_eq xor xor_eq
+	*/
 };
 
 template<typename TChar>
@@ -100,15 +179,22 @@ protected:
 	virtual int CheckRealSuffix(const TChar* buffer);
 	virtual int CheckExponentStart(const TChar* buffer);
 	virtual int CheckStringStart(const TChar* buffer);
-	virtual int CheckStringEnd(const TChar* buffer, const TChar* start);
+	virtual int CheckStringEnd(const TChar* buffer, const TChar* start, bool* outIsChar);
 	virtual int CheckStringEscape(const TChar* buffer, const TChar* start);
-	virtual int CheckOperator(const TChar* buffer);
+	virtual int CheckOperator(const TChar* buffer, int* langTokenType);
 	virtual int CheckEscNewLine(const TChar* buffer);
 	virtual bool CheckCaseSensitive() { return true; }	// 大文字と小文字を区別する
 
 	virtual void PollingToken(Token<TChar>& token);
 
 private:
+
+	struct WordData
+	{
+		const TChar*	Word;
+		int				Length;
+		CppTokenType	Type;
+	};
 
 	// #include のシーケンス
 	enum PreProIncludeSeq

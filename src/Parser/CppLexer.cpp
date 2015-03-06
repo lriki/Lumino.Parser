@@ -103,16 +103,9 @@ int CppLexer<TChar>::CheckIdentLetter(const TChar* buffer)
 template<typename TChar>
 int CppLexer<TChar>::CheckKeyword(const TChar* buffer, int* langTokenType)
 {
-	struct KeywordData
+	static const WordData wordList[] =
 	{
-		const TChar*	Word;
-		int				Length;
-		CppTokenType	Type;
-	};
-
-	static const KeywordData wordList[] =
-	{
-				{ LN_T(TChar, "asm"),					3,	TT_CppKW_asm },
+		{ LN_T(TChar, "asm"),					3,	TT_CppKW_asm },
 		{ LN_T(TChar, "auto"),					4,	TT_CppKW_auto },
 		{ LN_T(TChar, "bool"),					4,	TT_CppKW_bool },
 		{ LN_T(TChar, "break"),					5,	TT_CppKW_break },
@@ -180,8 +173,8 @@ int CppLexer<TChar>::CheckKeyword(const TChar* buffer, int* langTokenType)
 	const int count = LN_ARRAY_SIZE_OF(wordList);
 	for (int i = 0; i < count; ++i) 
 	{
-		if (wordList[i].Word[0] == buffer[0] &&
-			StringUtils::StrNCmp(wordList[i].Word, buffer, wordList[i].Length) == 0)
+		if (wordList[i].Word[0] == buffer[0] &&		// まずは先頭文字を調べて
+			StringUtils::StrNCmp(wordList[i].Word, buffer, wordList[i].Length) == 0)	// 先頭が一致したら残りを調べる
 		{
 			*langTokenType = (int)wordList[i].Type;
 			return wordList[i].Length;
@@ -253,12 +246,19 @@ int CppLexer<TChar>::CheckExponentStart(const TChar* buffer)
 template<typename TChar>
 int CppLexer<TChar>::CheckStringStart(const TChar* buffer)
 {
-	if (buffer[0] == '\'' ||
-		buffer[0] == '"')
-		return 1;
+	if (buffer[0] == '\'' || buffer[0] == '"') {
+		return 1;		// 普通の文字列リテラルの開始
+	}
+	if (buffer[0] == 'L') {
+		if (buffer[1] == '\'' || buffer[1] == '"') {
+			return 2;	// L プレフィックス付き文字列リテラル
+		}
+	}
 	// include ディレクティブ内であれば <> も文字列扱いする。
-	if (m_seqPreProInclude == PreProIncludeSeq_FoundInclude && buffer[0] == '<')
+	if (m_seqPreProInclude == PreProIncludeSeq_FoundInclude && buffer[0] == '<') {
 		return 1;
+
+	}
 	return 0;
 	// C# なら @" もある
 	// http://hydrocul.github.io/wiki/programming_languages_diff/string/escape.html
@@ -268,13 +268,26 @@ int CppLexer<TChar>::CheckStringStart(const TChar* buffer)
 //
 //-----------------------------------------------------------------------------
 template<typename TChar>
-int CppLexer<TChar>::CheckStringEnd(const TChar* buffer, const TChar* pStart)
+int CppLexer<TChar>::CheckStringEnd(const TChar* buffer, const TChar* start, bool* outIsChar)
 {
-	if (buffer[0] == pStart[0])
+	*outIsChar = false;
+
+	// L プレフィックス付き文字列リテラル
+	if (start[0] == 'L') {
+		if (buffer[0] == start[1]) {	// クォーテーションが L の次のクォーテーションと等しい
+			if (buffer[0] == '\'') { *outIsChar = true; }	// ' は文字リテラル
+			return 1;
+		}
+	}
+	// 普通の文字列リテラルの開始
+	if (buffer[0] == start[0]) {
+		if (buffer[0] == '\'') { *outIsChar = true; }		// ' は文字リテラル
 		return 1;
+	}
 	// include ディレクティブ内であれば <> も文字列扱いする。
-	if (m_seqPreProInclude == PreProIncludeSeq_FoundInclude && buffer[0] == '>')
+	if (m_seqPreProInclude == PreProIncludeSeq_FoundInclude && buffer[0] == '>') {
 		return 1;
+	}
 	return 0;
 }
 
@@ -302,49 +315,115 @@ int CppLexer<TChar>::CheckStringEscape(const TChar* buffer, const TChar* pStart)
 //
 //-----------------------------------------------------------------------------
 template<typename TChar>
-int CppLexer<TChar>::CheckOperator(const TChar* buffer)
+int CppLexer<TChar>::CheckOperator(const TChar* buffer, int* langTokenType)
 {
 	if (GetAlphaNumType(buffer[0]) == AlphaNumType_OpChar)
 	{
-		// 後続文字をチェック
+		// ++ と + のように、1文字目が同じものは文字数の多い方が先に検索されるようにする
+		static const WordData wordList[] =
 		{
-			//if (buffer[0] == '?' && buffer[1] == '?')	// ?? (C#)
-			//	return 2;
-			if (buffer[0] == '+' && buffer[1] == '+')	// ++
-				return 2;
-			if (buffer[0] == '-' && buffer[1] == '-')	// --
-				return 2;
-			if (buffer[0] == '&' && buffer[1] == '&')	// &&
-				return 2;
-			if (buffer[0] == '|' && buffer[1] == '|')	// ||
-				return 2;
-			if (buffer[0] == '-' && buffer[1] == '>')	// ->
-				return 2;
-			if (buffer[1] == '=')
+			{ LN_T(TChar, "##"),	2,	TT_CppOP_SharpSharp },
+			{ LN_T(TChar, "#"),		1,	TT_CppOP_Sharp },
+			{ LN_T(TChar, "->*"),	3,	TT_CppOP_ArrowAsterisk },
+			{ LN_T(TChar, "->"),	2,	TT_CppOP_Arrow },
+			{ LN_T(TChar, ","),		1,	TT_CppOP_Comma },
+			{ LN_T(TChar, "++"),	2,	TT_CppOP_Increment },
+			{ LN_T(TChar, "--"),	2,	TT_CppOP_Decrement },
+			{ LN_T(TChar, "&&"),	2,	TT_CppOP_LogicalAnd },
+			{ LN_T(TChar, "||"),	2,	TT_CppOP_LogicalOr },
+			{ LN_T(TChar, "<="),	2,	TT_CppOP_LessThenEqual },
+			{ LN_T(TChar, ">="),	2,	TT_CppOP_GreaterThenEqual },
+			{ LN_T(TChar, "=="),	2,	TT_CppOP_CmpEqual },
+			{ LN_T(TChar, "<<="),	3,	TT_CppOP_LeftShiftEqual },
+			{ LN_T(TChar, ">>="),	3,	TT_CppOP_RightShiftEqual },
+			{ LN_T(TChar, "+="),	2,	TT_CppOP_PlusEqual },
+			{ LN_T(TChar, "-="),	2,	TT_CppOP_MinusEqual },
+			{ LN_T(TChar, "*="),	2,	TT_CppOP_MulEqual },
+			{ LN_T(TChar, "/="),	2,	TT_CppOP_DivEqual },
+			{ LN_T(TChar, "%="),	2,	TT_CppOP_ModEqual },
+			{ LN_T(TChar, "&="),	2,	TT_CppOP_AndEqual },
+			{ LN_T(TChar, "|="),	2,	TT_CppOP_OrEqual },
+			{ LN_T(TChar, "!="),	2,	TT_CppOP_NotEqual },
+			{ LN_T(TChar, "="),		1,	TT_CppOP_Equal },
+			{ LN_T(TChar, "<<"),	2,	TT_CppOP_LeftShift },
+			{ LN_T(TChar, ">>"),	2,	TT_CppOP_RightShift },
+			{ LN_T(TChar, "+"),		1,	TT_CppOP_Plus },
+			{ LN_T(TChar, "-"),		1,	TT_CppOP_Minul },
+			{ LN_T(TChar, "*"),		1,	TT_CppOP_Asterisk },
+			{ LN_T(TChar, "/"),		1,	TT_CppOP_Slash },
+			{ LN_T(TChar, "%"),		1,	TT_CppOP_Parseint },
+			{ LN_T(TChar, "&"),		1,	TT_CppOP_Ampersand },
+			{ LN_T(TChar, "|"),		1,	TT_CppOP_Pipe },
+			{ LN_T(TChar, "~"),		1,	TT_CppOP_Tilde },
+			{ LN_T(TChar, "^"),		1,	TT_CppOP_Caret },
+			{ LN_T(TChar, "!"),		1,	TT_CppOP_Exclamation },
+			{ LN_T(TChar, "..."),	3,	TT_CppOP_Ellipsis },
+			{ LN_T(TChar, ".*"),	2,	TT_CppOP_DotAsterisk },
+			{ LN_T(TChar, "."),		1,	TT_CppOP_Dot },
+			{ LN_T(TChar, "::"),	2,	TT_CppOP_DoubleColon },
+			{ LN_T(TChar, "?"),		1,	TT_CppOP_Question },
+			{ LN_T(TChar, ":"),		1,	TT_CppOP_Colon },
+			{ LN_T(TChar, ";"),		1,	TT_CppOP_Semicolon },
+			{ LN_T(TChar, "{"),		1,	TT_CppOP_LeftBrace },
+			{ LN_T(TChar, "}"),		1,	TT_CppOP_RightBrace },
+			{ LN_T(TChar, "["),		1,	TT_CppOP_LeftBracket },
+			{ LN_T(TChar, "]"),		1,	TT_CppOP_RightBracket },
+			{ LN_T(TChar, "("),		1,	TT_CppOP_LeftParen },
+			{ LN_T(TChar, ")"),		1,	TT_CppOP_RightParen },
+			{ LN_T(TChar, "<"),		1,	TT_CppOP_LeftAngle },
+			{ LN_T(TChar, ">"),		1,	TT_CppOP_RightAngle },
+		};
+
+		const int count = LN_ARRAY_SIZE_OF(wordList);
+		for (int i = 0; i < count; ++i)
+		{
+			if (wordList[i].Word[0] == buffer[0] &&		// まずは先頭文字を調べて
+				StringUtils::StrNCmp(wordList[i].Word, buffer, wordList[i].Length) == 0)	// 先頭が一致したら残りを調べる
 			{
-				if (buffer[0] == '=') return 2;		// ==
-				if (buffer[0] == '!') return 2;		// !=
-				if (buffer[0] == '<') return 2;		// <=
-				if (buffer[0] == '>') return 2;		// >=
-				if (buffer[0] == '+') return 2;		// +=
-				if (buffer[0] == '-') return 2;		// -=
-				if (buffer[0] == '*') return 2;		// *=
-				if (buffer[0] == '/') return 2;		// /=
-				if (buffer[0] == '%') return 2;		// %=
-				if (buffer[0] == '&') return 2;		// &=
-				if (buffer[0] == '|') return 2;		// |=
-				if (buffer[0] == '^') return 2;		// ^=
-
+				*langTokenType = (int)wordList[i].Type;
+				return wordList[i].Length;
 			}
-			if (buffer[0] == '<' && buffer[1] == '<')	return 2;	// <<
-			if (buffer[0] == '>' && buffer[1] == '>')	return 2;	// >>	※C#ではトークン扱いではない http://dev.activebasic.com/egtra/2011/08/12/389/
-
-			if (buffer[0] == '<' && buffer[1] == '<' && buffer[3] == '=')	return 2;	// <<
-			if (buffer[0] == '>' && buffer[1] == '>' && buffer[3] == '=')	return 2;	// <<
 		}
+		return 0;
+	//	// 後続文字をチェック
+	//	{
+	//		//if (buffer[0] == '?' && buffer[1] == '?')	// ?? (C#)
+	//		//	return 2;
+	//		if (buffer[0] == '+' && buffer[1] == '+')	// ++
+	//			return 2;
+	//		if (buffer[0] == '-' && buffer[1] == '-')	// --
+	//			return 2;
+	//		if (buffer[0] == '&' && buffer[1] == '&')	// &&
+	//			return 2;
+	//		if (buffer[0] == '|' && buffer[1] == '|')	// ||
+	//			return 2;
+	//		if (buffer[0] == '-' && buffer[1] == '>')	// ->
+	//			return 2;
+	//		if (buffer[1] == '=')
+	//		{
+	//			if (buffer[0] == '=') return 2;		// ==
+	//			if (buffer[0] == '!') return 2;		// !=
+	//			if (buffer[0] == '<') return 2;		// <=
+	//			if (buffer[0] == '>') return 2;		// >=
+	//			if (buffer[0] == '+') return 2;		// +=
+	//			if (buffer[0] == '-') return 2;		// -=
+	//			if (buffer[0] == '*') return 2;		// *=
+	//			if (buffer[0] == '/') return 2;		// /=
+	//			if (buffer[0] == '%') return 2;		// %=
+	//			if (buffer[0] == '&') return 2;		// &=
+	//			if (buffer[0] == '|') return 2;		// |=
+	//			if (buffer[0] == '^') return 2;		// ^=
 
-		// 特に後続するものはない
-		return 1;
+	//		}
+	//		if (buffer[0] == '<' && buffer[1] == '<')	return 2;	// <<
+	//		if (buffer[0] == '>' && buffer[1] == '>')	return 2;	// >>	※C#ではトークン扱いではない http://dev.activebasic.com/egtra/2011/08/12/389/
+
+	//		if (buffer[0] == '<' && buffer[1] == '<' && buffer[3] == '=')	return 2;	// <<
+	//		if (buffer[0] == '>' && buffer[1] == '>' && buffer[3] == '=')	return 2;	// <<
+	//	}
+
+	//	// 特に後続するものはない
+	//	return 1;
 	}
 	return 0;
 }

@@ -55,7 +55,7 @@ void Lexer<TChar>::Analyze(RefBuffer* buffer, ErrorManager* errorManager)
 	m_tokenList->Reserve(buffer->GetSize());
 
 	m_cursor = (TChar*)buffer->GetPointer();
-	m_bufferEnd = m_cursor + buffer->GetSize();
+	m_bufferEnd = m_cursor + (buffer->GetSize() / sizeof(TChar));
 
 	while (m_cursor < m_bufferEnd)
 	{
@@ -91,6 +91,26 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 	// 予約語
 	count = ReadKeyword(buffer);
 	if (count > 0) { return count; }
+	// 文字列リテラル
+	/* 文字列リテラルは識別子の前に解析する。これは、L 等のプレフィックス対応のため。
+	* なお、CheckHexLiteralStart() は 0x をプレフィックスとして特別扱いしているが、
+	* 文字列ではこのように L を特別扱いはしない。
+	* これは C++11 の raw string 対応を視野に入れたもの。
+	*
+	* raw string は次のように書くことができる。
+	*		str = R"**(AAA )" BBB)**";
+	* このリテラルでは、
+	* ・開始トークン	… R"**(
+	* ・文字列			… AAA )" BBB
+	* ・終端トークン	… )**"
+	* である。
+	*
+	* プレフィックスは L R U 等様々あり、これらを特別扱いしてパースしても、
+	* 次の " 時には「何の種類であるか」を CheckStringStart() に渡さなければならない。
+	* プレフィックスと " の間に空白が可能であればまだしも、わざわざ特別扱いして関数を分けると逆に複雑になってしまう。
+	*/
+	count = ReadCharOrStringLiteral(buffer);
+	if (count > 0) { return count; }
 	// 識別子
 	count = ReadIdentifier(buffer);
 	if (count > 0) { return count; }
@@ -98,11 +118,6 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 	count = ReadNumericLiteral(buffer);
 	if (count > 0) {
 		m_tokenList->Add(Token<TChar>(TokenType_NumericLiteral, buffer, buffer + count));
-		return count;
-	}
-	// 文字列リテラル
-	count = ReadCharOrStringLiteral(buffer);
-	if (count > 0) {
 		return count;
 	}
 	// コメント (演算子よりも優先する)
@@ -113,10 +128,7 @@ int Lexer<TChar>::ReadToken(const TChar* buffer)
 	}
 	// 演算子
 	count = ReadOperator(buffer);
-	if (count > 0) {
-		m_tokenList->Add(Token<TChar>(TokenType_Operator, buffer, buffer + count));
-		return count;
-	}
+	if (count > 0) { return count; }
 	// プリプロセッサディレクティブ
 	//count = ReadPrePro(buffer);
 	//if (count > 0) {
@@ -368,33 +380,34 @@ int Lexer<TChar>::ReadCharOrStringLiteral(const TChar* buffer)
 		return 0;
 	}
 
-	const TChar* pStart = buffer;
-	const TChar* pPos = buffer + 1;
+	const TChar* start = buffer;
+	const TChar* pos = buffer + startCount;
 	int endCount = 0;
-	while (pPos < m_bufferEnd)
+	bool isChar;
+	while (pos < m_bufferEnd)
 	{
 		// エスケープシーケンスのチェック
-		int count = CheckStringEscape(pPos, pStart);
+		int count = CheckStringEscape(pos, start);
 		if (count > 0) {
-			pPos += count;
+			pos += count;
 			continue;	// この後の解析には回さないで次の文字へ
 		}
 
 		// 文字列の終了チェック
-		endCount = CheckStringEnd(pPos, pStart);
+		endCount = CheckStringEnd(pos, start, &isChar);
 		if (endCount > 0) {
-			pPos += endCount;
+			pos += endCount;
 			break;		// 文字列終了
 		}
 
-		pPos++;
+		pos++;
 	}
 
-	Token<TChar> token(TokenType_CharOrStringLiteral, buffer, pPos);
-	token.SetStringValue(buffer + startCount, pPos - endCount);
+	Token<TChar> token((isChar) ? TokenType_CharLiteral : TokenType_StringLiteral, buffer, pos);
+	token.SetStringValue(buffer + startCount, pos - endCount);
 	m_tokenList->Add(token);
 
-	return pPos - buffer;
+	return pos - buffer;
 }
 
 //-----------------------------------------------------------------------------
@@ -403,7 +416,12 @@ int Lexer<TChar>::ReadCharOrStringLiteral(const TChar* buffer)
 template<typename TChar>
 int Lexer<TChar>::ReadOperator(const TChar* buffer)
 {
-	return CheckOperator(buffer);
+	int lnagTokenType = 0;
+	int count = CheckOperator(buffer, &lnagTokenType);
+	if (count > 0) {
+		m_tokenList->Add(Token<TChar>(TokenType_Operator, lnagTokenType, buffer, buffer + count));
+	}
+	return count;
 }
 
 //-----------------------------------------------------------------------------

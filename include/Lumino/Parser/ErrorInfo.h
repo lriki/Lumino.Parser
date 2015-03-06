@@ -24,6 +24,8 @@ enum ErrorCode
 	ErrorCode_Warning_FileNotFound,	///< ƒtƒ@ƒCƒ‹‚ªŒ©‚Â‚©‚ç‚È‚©‚Á‚½
 
 
+
+	// [C/C++] define ‚Ì # ‚ÌŒã‚Í‰¼ˆø”‚Å‚È‚¯‚ê‚Î‚È‚ç‚È‚¢
 };
 
 class ErrorItem

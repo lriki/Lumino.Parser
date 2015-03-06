@@ -12,21 +12,29 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Parser\CppLexer.cpp" />
+    <ClCompile Include="..\..\src\Parser\Cpp\CppParser.cpp" />
+    <ClCompile Include="..\..\src\Parser\Cpp\CppParserCoreBase.cpp" />
     <ClCompile Include="..\..\src\Parser\Cpp\CppPreprocessor.cpp" />
     <ClCompile Include="..\..\src\Parser\ErrorInfo.cpp" />
     <ClCompile Include="..\..\src\Parser\Lexer.cpp" />
     <ClCompile Include="..\..\src\Parser\ParserUtils.cpp" />
+    <ClCompile Include="..\..\src\Parser\RPN\RPNParser.cpp" />
+    <ClCompile Include="..\..\src\Parser\Token.cpp" />
     <ClCompile Include="..\..\src\Parser\Tools\SimpleCppIncludePreprocessor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\Lumino\Parser\CppLexer.h" />
+    <ClInclude Include="..\..\include\Lumino\Parser\Cpp\CppParser.h" />
+    <ClInclude Include="..\..\include\Lumino\Parser\Cpp\CppPreprocessor.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\ErrorInfo.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\Lexer.h" />
+    <ClInclude Include="..\..\include\Lumino\Parser\ParserObject.h" />
+    <ClInclude Include="..\..\include\Lumino\Parser\RPN\RPNParser.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\String.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\Token.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\TokenList.h" />
     <ClInclude Include="..\..\include\Lumino\Parser\Tools\SimpleCppIncludePreprocessor.h" />
-    <ClInclude Include="..\..\src\Parser\Cpp\CppPreprocessor.h" />
+    <ClInclude Include="..\..\src\Parser\Cpp\CppParserCoreBase.h" />
     <ClInclude Include="..\..\src\Parser\ParserUtils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -71,7 +79,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\external\Lumino.Core\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\external\Lumino.Core\include;..\..\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -90,7 +98,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\external\Lumino.Core\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\external\Lumino.Core\include;..\..\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

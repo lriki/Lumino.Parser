@@ -10,6 +10,9 @@
     <Filter Include="Parser\Cpp">
       <UniqueIdentifier>{6129353c-4938-4355-a85f-bf53e17792a4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Parser\RPN">
+      <UniqueIdentifier>{cf037c64-d1c6-43fa-92e0-10d2088d49a7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Parser\Lexer.cpp">
@@ -29,6 +32,18 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Parser\Cpp\CppPreprocessor.cpp">
       <Filter>Parser\Cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\Cpp\CppParser.cpp">
+      <Filter>Parser\Cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\Cpp\CppParserCoreBase.cpp">
+      <Filter>Parser\Cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\Token.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\RPN\RPNParser.cpp">
+      <Filter>Parser\RPN</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -50,13 +65,25 @@
     <ClInclude Include="..\..\src\Parser\ParserUtils.h">
       <Filter>Parser</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Parser\Cpp\CppPreprocessor.h">
-      <Filter>Parser\Cpp</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\Lumino\Parser\String.h">
       <Filter>Parser</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\Lumino\Parser\TokenList.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Lumino\Parser\Cpp\CppPreprocessor.h">
+      <Filter>Parser\Cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Lumino\Parser\Cpp\CppParser.h">
+      <Filter>Parser\Cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\Cpp\CppParserCoreBase.h">
+      <Filter>Parser\Cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Lumino\Parser\RPN\RPNParser.h">
+      <Filter>Parser\RPN</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Lumino\Parser\ParserObject.h">
       <Filter>Parser</Filter>
     </ClInclude>
   </ItemGroup>

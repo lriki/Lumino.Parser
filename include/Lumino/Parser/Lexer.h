@@ -75,9 +75,9 @@ protected:
 	virtual int CheckRealSuffix(const TChar* buffer) = 0;
 	virtual int CheckExponentStart(const TChar* buffer) = 0;
 	virtual int CheckStringStart(const TChar* buffer) = 0;
-	virtual int CheckStringEnd(const TChar* buffer, const TChar* start) = 0;
+	virtual int CheckStringEnd(const TChar* buffer, const TChar* start, bool* outIsChar) = 0;	// VB ÇÃ char ÉäÉeÉâÉãÇÕ "A"CÅBEnd Ç…Ç»ÇÁÇ»Ç¢Ç∆ÇÌÇ©ÇÁÇ»Ç¢
 	virtual int CheckStringEscape(const TChar* buffer, const TChar* start) = 0;
-	virtual int CheckOperator(const TChar* buffer) = 0;
+	virtual int CheckOperator(const TChar* buffer, int* langTokenType) = 0;
 	virtual int CheckEscNewLine(const TChar* buffer) = 0;
 	virtual bool CheckCaseSensitive() = 0;
 

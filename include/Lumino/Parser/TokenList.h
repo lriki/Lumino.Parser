@@ -24,9 +24,12 @@ public:
 
 public:
 	void Reserve(size_t size) { m_list.reserve(size); }
+	void Resize(size_t size) { m_list.resize(size); }
 	void Add(const Token<TChar>& token) { m_list.push_back(token); }
+	TokenT& GetAt(int index) { return m_list.at(index); }
 	TokenT& GetLast() { return *(m_list.rbegin()); }
 	const TokenT& GetLast() const { return *(m_list.rbegin()); }
+	//TokenList SubList(const_iterator begin, const_iterator end) { TokenList newList; newList.resize(end - begin); std::copy(begin, end, newList.begin()); return newList; }
 
 	size_t size() { return m_list.size(); }
 	iterator begin() { return m_list.begin(); }
@@ -35,6 +38,8 @@ public:
 	iterator insert(const_iterator pos, const_iterator begin, const_iterator end) { return m_list.insert(pos, begin, end); }
 	iterator erase(iterator begin, iterator end) { return m_list.erase(begin, end); }
 	iterator erase(const_iterator begin, const_iterator end) { return m_list.erase(begin, end); }
+
+	TokenT& operator[](size_t index) { return m_list[index]; }
 
 public:
 	/// このトークンリストが保持するすべてのトークンが持つ文字列の参照を切り、内部メモリにコピーする。

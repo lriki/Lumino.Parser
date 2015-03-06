@@ -23,3 +23,40 @@ TEST_F(Test_CppLexer, Basic)
 	Parser::CppLexer<char>::TokenListT* tokens = lexer.GetTokenList();
 
 }
+
+//-----------------------------------------------------------------------------
+TEST_F(Test_CppLexer, CharOrStringLiteral)
+{
+	// L プレフィックス付き
+	const TCHAR* s1 = _T("L\"a\"");
+	RefBuffer buffer(s1, StringUtils::StrLen(s1) * sizeof(TCHAR));
+
+	Parser::ErrorManager err;
+	Parser::CppLexer<TCHAR> lexer;
+	lexer.Analyze(&buffer, &err);
+	Parser::CppLexer<TCHAR>::TokenListT* tokens = lexer.GetTokenList();
+
+	ASSERT_EQ(Parser::TokenType_StringLiteral, tokens->GetAt(0).GetTokenType());
+	ASSERT_EQ(Parser::TokenType_EOF, tokens->GetAt(1).GetTokenType());
+}
+
+//-----------------------------------------------------------------------------
+TEST_F(Test_CppLexer, CppTokenType)
+{
+	// ※x+++++y is parsed as x ++ ++ + y,
+	const TCHAR* s1 = _T("+++++");
+	RefBuffer buffer(s1, StringUtils::StrLen(s1) * sizeof(TCHAR));
+
+	Parser::ErrorManager err;
+	Parser::CppLexer<TCHAR> lexer;
+	lexer.Analyze(&buffer, &err);
+
+	Parser::CppLexer<TCHAR>::TokenListT* tokens = lexer.GetTokenList();
+
+	ASSERT_EQ(Parser::TT_CppOP_Increment, tokens->GetAt(0).GetLangTokenType());
+	ASSERT_EQ(Parser::TT_CppOP_Increment, tokens->GetAt(1).GetLangTokenType());
+	ASSERT_EQ(Parser::TT_CppOP_Plus, tokens->GetAt(2).GetLangTokenType());
+	ASSERT_EQ(Parser::TokenType_EOF, tokens->GetAt(3).GetTokenType());
+
+
+}

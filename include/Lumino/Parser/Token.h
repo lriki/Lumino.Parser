@@ -21,7 +21,16 @@ enum TokenType
 	TokenType_Identifier,
 	TokenType_Keyword,
 	TokenType_NumericLiteral,
-	TokenType_CharOrStringLiteral,
+
+	/*
+	 *	C/C++ の「string-literal:」にあたり、L のようなプレフィックスも含む点に注意。
+	 *	文法上、プレフィックスとクォーテーションの間に空白を含めることはできない。
+	 *	C# の @ も含まれる。
+	 */
+	 TokenType_StringLiteral,
+	 TokenType_CharLiteral,			///< RPNParser で数値として評価できるため StringLiteral とは分けている
+	//TokenType_CharOrStringLiteral,
+
 	TokenType_Operator,
 	TokenType_Comment,				///< 行末\ がある場合は含める
 	TokenType_EscNewLine,			///< 行末 \ (TokenType_NewLine とは区別する。"\n" = NewLine, "\\\n" = EscNewLine)
@@ -36,6 +45,11 @@ public:
 	typename typedef BasicString<TChar> StringT;
 
 public:
+	Token()
+	{
+		Init();
+	}
+
 	Token(TokenType type, const TChar* pBegin, const TChar* pEnd)
 	{
 		Init();
@@ -102,6 +116,7 @@ public:
 
 public:
 	TokenType		GetTokenType() const { return m_type; }
+	int				GetLangTokenType() const { return m_langTokenType; }
 	const TChar*	GetTokenBegin() const { return m_begin; }
 	const TChar*	GetTokenEnd() const { return m_end; }
 	int				GetLength() const { return m_end - m_begin; }
@@ -203,6 +218,21 @@ private:
 	//TChar*	m_dynamicBuffer;
 	std::tr1::shared_ptr<TChar> m_dynamicBuffer;
 
+	/*
+		他にも最終的に必要になりそうな情報は…
+		・意味解析レベルでの種別(クラス名？関数名？マクロ？)
+		・宣言元ファイル名と行番号
+		・完全修飾名
+		・無効領域のトークンであるか
+		…と思ったけど、意味解析レベルでは他の Varable クラスとか作って、そのメンバとして Token 持たせる方がいいと思う。
+		そうすると必要になるのは無効トークンかどうかくらい？
+		・マクロによって展開されたトークンであるか→処理後、畳むために必用
+		・親の意味オブジェクト
+
+		なお、整形を行う場合は完全に元に戻すのは不可能。
+		もう中間言語からのデコンパイルと考えた方がいいかもしれない。
+		ただ、プリプロ文は残しておきたい気もする…。
+	*/
 
 
 };
