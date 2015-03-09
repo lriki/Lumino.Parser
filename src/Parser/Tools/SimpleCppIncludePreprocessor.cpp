@@ -23,17 +23,17 @@ void SimpleCppIncludePreprocessor<TChar>::Analyze(const PathName& fileFullPath, 
 	m_errorManager = errorManager;
 
 	// ファイルを開く
-	RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(fileFullPath));
+	RefPtr<ByteBuffer> fileData(FileUtils::ReadAllBytes(fileFullPath));
 
 	// 文字コード判別 (BOM を消す意味でも文字コード自動判別は必須)
 	Text::EncodingDetector detector;
-	Text::EncodingType charCode = detector.Detect(fileData->GetPointer(), fileData->GetSize());
+	Text::EncodingType charCode = detector.Detect(fileData->GetData(), fileData->GetSize());
 	Text::Encoding* enc = Text::Encoding::GetEncoding(charCode);
 
 	// TChar へ文字コード変換
 	Text::EncodingConversionResult result;
-	RefPtr<RefBuffer> code(
-		Text::Encoding::Convert(fileData->GetPointer(), fileData->GetSize(), enc, Text::Encoding::GetEncodingTemplate<TChar>(), &result));
+	RefPtr<ByteBuffer> code(
+		Text::Encoding::Convert(fileData->GetData(), fileData->GetSize(), enc, Text::Encoding::GetEncodingTemplate<TChar>(), &result));
 
 	// lex
 	CppLexer<TChar> lexer;
@@ -71,17 +71,17 @@ typename bool SimpleCppIncludePreprocessor<TChar>::LoadIncludeFile(const PathNam
 	if (!FileUtils::Exists(fileFullPath)) {
 		return false;
 	}
-	RefPtr<RefBuffer> fileData(FileUtils::ReadAllBytes(fileFullPath));
+	RefPtr<ByteBuffer> fileData(FileUtils::ReadAllBytes(fileFullPath));
 
 	// 文字コード判別 (BOM を消す意味でも文字コード自動判別は必須)
 	Text::EncodingDetector detector;
-	Text::EncodingType charCode = detector.Detect(fileData->GetPointer(), fileData->GetSize());
+	Text::EncodingType charCode = detector.Detect(fileData->GetData(), fileData->GetSize());
 	Text::Encoding* enc = Text::Encoding::GetEncoding(charCode);
 
 	// TChar へ文字コード変換
 	Text::EncodingConversionResult result;
-	RefPtr<RefBuffer> code(
-		Text::Encoding::Convert(fileData->GetPointer(), fileData->GetSize(), enc, Text::Encoding::GetEncodingTemplate<TChar>(), &result));
+	RefPtr<ByteBuffer> code(
+		Text::Encoding::Convert(fileData->GetData(), fileData->GetSize(), enc, Text::Encoding::GetEncodingTemplate<TChar>(), &result));
 
 	// lex
 	CppLexer<TChar> lexer;
@@ -182,7 +182,7 @@ void SimpleCppIncludePreprocessor<TChar>::AnalyzeTokenList(TokenListT* tokenList
 //template<typename TChar>
 //typename SimpleCppIncludePreprocessor<TChar>::StringT SimpleCppIncludePreprocessor<TChar>::AnalyzeStringToString(const StringT& text, const SettingData& settingData)
 //{
-//	RefBuffer buffer;
+//	ByteBuffer buffer;
 //	buffer.Reserve((byte_t*)text.GetCStr(), text.GetByteCount());
 //
 //	CppLexer<TChar> lexer;

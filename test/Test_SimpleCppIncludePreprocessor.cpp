@@ -13,7 +13,7 @@ protected:
 TEST_F(Test_SimpleCppIncludePreprocessor, Basic)
 {
 	/*
-	RefPtr<RefBuffer> buffer(
+	RefPtr<ByteBuffer> buffer(
 		FileUtils::ReadAllBytes(LN_TEST_GET_FILE_PATH("TestData/SimpleCppIncludePreprocessor.txt")));
 
 	PathName curDir(LN_TEST_GET_FILE_PATH("TestData"));

@@ -164,6 +164,9 @@ public:
 	CppLexer();
 	virtual ~CppLexer() {}
 
+public:
+	static TokenListT* Lex(const ByteBuffer* buffer, ErrorManager* errorInfo);
+
 protected:
 
 	// 以下をオーバーライドする場合、終端確認には GetBufferEnd() を使用する

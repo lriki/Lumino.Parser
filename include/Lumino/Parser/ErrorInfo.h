@@ -2,7 +2,7 @@
 #pragma once
 
 #include <stack>
-#include "../../../external/Lumino.Core/include/Lumino/Base/RefBuffer.h"
+#include "../../../external/Lumino.Core/include/Lumino/Base/ByteBuffer.h"
 #include "../../../external/Lumino.Core/include/Lumino/Base/Array.h"
 #include "../../../external/Lumino.Core/include/Lumino/IO/PathName.h"
 #include "Token.h"

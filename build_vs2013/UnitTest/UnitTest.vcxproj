@@ -85,6 +85,7 @@
     <ClCompile Include="..\..\test\Test_CppLexer.cpp" />
     <ClCompile Include="..\..\test\Test_CppParser.cpp" />
     <ClCompile Include="..\..\test\Test_CppPreprocessor.cpp" />
+    <ClCompile Include="..\..\test\Test_RPNParser.cpp" />
     <ClCompile Include="..\..\test\Test_SimpleCppIncludePreprocessor.cpp" />
   </ItemGroup>
   <ItemGroup>

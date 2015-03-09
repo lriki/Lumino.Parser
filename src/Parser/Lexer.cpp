@@ -36,9 +36,9 @@ static int g_alphaNumTypeTable[256] =
 //-----------------------------------------------------------------------------
 template<typename TChar>
 Lexer<TChar>::Lexer()
-: m_cursor(NULL)
-, m_bufferEnd(NULL)
-, m_errorManager(NULL)
+	: m_cursor(NULL)
+	, m_bufferEnd(NULL)
+	, m_errorManager(NULL)
 {
 }
 
@@ -46,7 +46,7 @@ Lexer<TChar>::Lexer()
 //
 //-----------------------------------------------------------------------------
 template<typename TChar>
-void Lexer<TChar>::Analyze(RefBuffer* buffer, ErrorManager* errorManager)
+void Lexer<TChar>::Analyze(const ByteBuffer* buffer, ErrorManager* errorManager)
 {
 	m_errorManager = errorManager;
 	m_tokenList.Attach(LN_NEW TokenListT());
@@ -54,7 +54,7 @@ void Lexer<TChar>::Analyze(RefBuffer* buffer, ErrorManager* errorManager)
 	// 最悪のパターンで容量確保
 	m_tokenList->Reserve(buffer->GetSize());
 
-	m_cursor = (TChar*)buffer->GetPointer();
+	m_cursor = (TChar*)buffer->GetData();
 	m_bufferEnd = m_cursor + (buffer->GetSize() / sizeof(TChar));
 
 	while (m_cursor < m_bufferEnd)

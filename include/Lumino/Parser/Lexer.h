@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "../../../external/Lumino.Core/include/Lumino/Base/RefBuffer.h"
+#include "../../../external/Lumino.Core/include/Lumino/Base/ByteBuffer.h"
 #include "TokenList.h"
 
 namespace Lumino
@@ -32,7 +32,7 @@ public:
 	Lexer();
 	virtual ~Lexer(){}
 
-	void Analyze(RefBuffer* buffer, ErrorManager* errorManager);
+	void Analyze(const ByteBuffer* buffer, ErrorManager* errorManager);
 	TokenListT* GetTokenList() { return m_tokenList; }
 
 

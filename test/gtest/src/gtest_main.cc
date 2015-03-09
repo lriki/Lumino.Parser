@@ -43,7 +43,7 @@ GTEST_API_ int main(int argc, char **argv) {
 	char* testArgs[] = {
 		argv[0],
 		//"--gtest_filter=Test_SimpleCppIncludePreprocessor.*"
-		"--gtest_filter=Test_CppParser.*"
+		"--gtest_filter=Test_RPNParser.*"
 	};
 	argc = sizeof(testArgs) / sizeof(char*);
 	testing::InitGoogleTest(&argc, (char**)testArgs/*&argc, argv*/);

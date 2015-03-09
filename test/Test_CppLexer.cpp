@@ -13,8 +13,7 @@ protected:
 TEST_F(Test_CppLexer, Basic)
 {
 	const char* s1 = "#include <hoge.h>";//"float a = 1.0f;";
-	RefBuffer buffer;
-	buffer.Reserve((const byte_t*)s1, strlen(s1));
+	ByteBuffer buffer((const byte_t*)s1, strlen(s1));
 
 	Parser::ErrorManager err;
 	Parser::CppLexer<char> lexer;
@@ -29,7 +28,7 @@ TEST_F(Test_CppLexer, CharOrStringLiteral)
 {
 	// L プレフィックス付き
 	const TCHAR* s1 = _T("L\"a\"");
-	RefBuffer buffer(s1, StringUtils::StrLen(s1) * sizeof(TCHAR));
+	ByteBuffer buffer(s1, StringUtils::StrLen(s1) * sizeof(TCHAR));
 
 	Parser::ErrorManager err;
 	Parser::CppLexer<TCHAR> lexer;
@@ -45,7 +44,7 @@ TEST_F(Test_CppLexer, CppTokenType)
 {
 	// ※x+++++y is parsed as x ++ ++ + y,
 	const TCHAR* s1 = _T("+++++");
-	RefBuffer buffer(s1, StringUtils::StrLen(s1) * sizeof(TCHAR));
+	ByteBuffer buffer(s1, StringUtils::StrLen(s1) * sizeof(TCHAR));
 
 	Parser::ErrorManager err;
 	Parser::CppLexer<TCHAR> lexer;

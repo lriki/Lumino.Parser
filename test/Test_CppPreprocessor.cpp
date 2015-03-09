@@ -15,7 +15,7 @@ TEST_F(Test_CppPreprocessor, Basic)
 {
 
 	const TCHAR* s1 = _T("#define AAA(x, ...) { x; __VA_ARGS__; }");
-	RefBuffer buffer(s1, StringUtils::StrLen(s1) * sizeof(TCHAR));
+	ByteBuffer buffer(s1, StringUtils::StrLen(s1) * sizeof(TCHAR));
 
 	Parser::ErrorManager err;
 	Parser::CppLexer<TCHAR> lexer;

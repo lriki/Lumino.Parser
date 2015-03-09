@@ -11,6 +11,7 @@
     <ClCompile Include="..\..\test\Test_SimpleCppIncludePreprocessor.cpp" />
     <ClCompile Include="..\..\test\Test_CppPreprocessor.cpp" />
     <ClCompile Include="..\..\test\Test_CppParser.cpp" />
+    <ClCompile Include="..\..\test\Test_RPNParser.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gtest">

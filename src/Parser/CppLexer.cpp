@@ -26,6 +26,18 @@ CppLexer<TChar>::CppLexer()
 //
 //-----------------------------------------------------------------------------
 template<typename TChar>
+TokenList<TChar>* CppLexer<TChar>::Lex(const ByteBuffer* buffer, ErrorManager* errorInfo)
+{
+	CppLexer<TChar> lexer;
+	lexer.Analyze(buffer, errorInfo);
+	lexer.GetTokenList()->AddRef();
+	return lexer.GetTokenList();
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+template<typename TChar>
 int CppLexer<TChar>::CheckSpaceChar(const TChar* buffer)
 {
 	if (buffer[0] == ' ' ||

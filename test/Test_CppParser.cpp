@@ -60,7 +60,7 @@ public:
 TEST_F(Test_CppParser, Basic)
 {
 	const TCHAR* s1 = _T("10 + 20 + 10 =");
-	RefBuffer buffer(s1, StringUtils::StrLen(s1) * sizeof(TCHAR));
+	ByteBuffer buffer(s1, StringUtils::StrLen(s1) * sizeof(TCHAR));
 
 	Parser::ErrorManager err;
 	Parser::CppLexer<TCHAR> lexer;

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <Lumino/Base/Stack.h>
 #include <Lumino/IO/PathName.h>
 #include "../ParserObject.h"
 
@@ -19,6 +20,8 @@ enum RPNTokenType
 	RPN_TT_OP_LeftParen,			// (
 	RPN_TT_OP_RightParen,			// )
 
+	RPN_TT_OP_UnaryPlus,			// + (Unary)
+	RPN_TT_OP_UnaryMinus,			// - (Unary)
 	RPN_TT_OP_LogicalNot,			// !
 	RPN_TT_OP_BitwiseNot,			// ~
 
@@ -26,8 +29,8 @@ enum RPNTokenType
 	RPN_TT_OP_Divide,				// /
 	RPN_TT_OP_IntegerDivide,		// %
 
-	RPN_TT_OP_Plus,					// + (Unary or Binary)
-	RPN_TT_OP_Minus,				// - (Unary or Binary)
+	RPN_TT_OP_BinaryPlus,			// + (Binary)
+	RPN_TT_OP_BinaryMinus,			// - (Binary)
 
 	RPN_TT_OP_LeftShift,			// <<
 	RPN_TT_OP_RightShift,			// >>
@@ -73,6 +76,11 @@ template<typename TChar>
 class RPNToken
 {
 public:
+	bool IsOperator() const { return RPN_TT_OP_LeftParen <= Type && Type <= RPN_TT_OP_CondFalse; }
+
+	
+
+public:
 	RPNTokenType		Type;
 	int					Precedence;		///< 優先順位
 	OpeatorAssociation	Association;	///< 結合方向
@@ -84,17 +92,24 @@ class RPNParser
 	: public ParserObject<TChar>
 {
 public:
-	typename typedef RPNToken<TChar>	RPNTokenT;
-	typename typedef Array<RPNTokenT>	RPNTokenListT;
+	typename typedef RPNToken<TChar>		RPNTokenT;
+	typename typedef ArrayList<RPNTokenT>	RPNTokenListT;
 
 public:
-	static void ParseCppConstExpression(Position exprBegin, Position exprEnd, RPNTokenListT* outElementList, ErrorManager* errorInfo);
+	static ArrayList< RPNToken<TChar> >* ParseCppConstExpression(Position exprBegin, Position exprEnd, ErrorManager* errorInfo);
 
 private:
 	void TokenizeCppConst(Position exprBegin, Position exprEnd);
+	void Parse();
+	void PushOpStack(RPNTokenT* token);
+	void PopOpStackGroupEnd();
 
 private:
-	RPNTokenListT	m_tokenList;
+	RefPtr<RPNTokenListT>	m_tokenList;
+
+	RefPtr<RPNTokenListT>	m_rpnTokenList;
+	Stack<RPNTokenT*>		m_opStack;		///< 演算子用の作業スタック
+	Stack<RPNTokenT*>		m_condStack;	///< 条件演算子用の作業スタック
 };
 
 } // namespace Parser

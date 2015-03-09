@@ -2,7 +2,7 @@
 #pragma once
 
 #include <memory>
-#include "../../../external/Lumino.Core/include/Lumino/Base/RefBuffer.h"
+#include "../../../external/Lumino.Core/include/Lumino/Base/ByteBuffer.h"
 #include "../../../external/Lumino.Core/include/Lumino/Base/Array.h"
 #include "../../../external/Lumino.Core/include/Lumino/Base/String.h"
 #include "../../../external/Lumino.Core/include/Lumino/Base/StringUtils.h"
