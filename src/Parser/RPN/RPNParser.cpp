@@ -29,7 +29,7 @@ namespace Parser
 /*
 	条件演算子の解析
 
-		1 ? 6 ? 7 : 8 : 3 ? 4 : 5
+		1 ? 6 ? 7 : 8 : 3 ? 4 : 5		分かりやすく括弧を付けると→ 1 ? (6 ? 7 : 8) : (3 ? 4 : 5)
 
 	という式は、Parse では以下のように展開できれば良い。
 
@@ -39,12 +39,12 @@ namespace Parser
 
 	Eval では、
 	・トークンは左から右へ読んでいく。
-	・? の goto は、条件式が false だった場合にジャンプする idx を示す。
+	・? の goto は、条件式(オペランstack top)が false だった場合にジャンプする idx を示す。
 	・: の goto は、ここにたどり着いたときにジャンプする idx を示す。(一律、式の終端(※)である)
 	※「式の終端」とは、')' またはバッファ終端である。
 
 	?: 以下の優先度の演算子は代入系とthrow、, だが、これらを考慮しない場合は
-	たとえどれだけ : で区切られようとも : でジャンプするのは式の終端である。
+	たとえどれだけ : で区切られようとも : でジャンプするのは必ず式の終端である。
 
 */
 
@@ -140,8 +140,8 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 				/* TT_CppOP_RightBrace		}	*/	RPN_TT_Unknown,
 				/* TT_CppOP_LeftBracket		[	*/	RPN_TT_Unknown,
 				/* TT_CppOP_RightBracket	]	*/	RPN_TT_Unknown,
-				/* TT_CppOP_LeftParen		(	*/	RPN_TT_OP_LeftParen,
-				/* TT_CppOP_RightParen		)	*/	RPN_TT_OP_RightParen,
+				/* TT_CppOP_LeftParen		(	*/	RPN_TT_OP_GroupStart,
+				/* TT_CppOP_RightParen		)	*/	RPN_TT_OP_GroupEnd,
 				/* TT_CppOP_LeftAngle		<	*/	RPN_TT_OP_CompLessThan,
 				/* TT_CppOP_RightAngle		>	*/	RPN_TT_OP_CompGreaterThen,
 			};
@@ -156,8 +156,8 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 			{
 				{ 0,	OpeatorAssociation_Left },	// RPN_TT_Unknown,				// (Dummy)
 				{ 0,	OpeatorAssociation_Left },	// RPN_TT_NumericLiteral,		// (Dummy)
-				{ 2,	OpeatorAssociation_Left },	// RPN_TT_OP_LeftParen,			// (
-				{ 2,	OpeatorAssociation_Left },	// RPN_TT_OP_RightParen,		// )
+				{ 2,	OpeatorAssociation_Left },	// RPN_TT_OP_GroupStart,		// (
+				{ 2,	OpeatorAssociation_Left },	// RPN_TT_OP_GroupEnd,			// )
 				{ 3,	OpeatorAssociation_Right },	// RPN_TT_OP_UnaryPlus,			// +
 				{ 3,	OpeatorAssociation_Right },	// RPN_TT_OP_UnaryMinus,		// -
 				{ 3,	OpeatorAssociation_Right },	// RPN_TT_OP_LogicalNot,		// !
@@ -222,32 +222,45 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 template<typename TChar>
 void RPNParser<TChar>::Parse()
 {
-	m_rpnTokenList.Attach(LN_NEW RPNTokenListT());
-	m_rpnTokenList->Reserve(m_tokenList->GetCount());
+	m_tmpRPNTokenList.Reserve(m_tokenList->GetCount());
+	m_groupLevel = 0;
 
 	LN_FOREACH(RPNTokenT& token, *m_tokenList)
 	{
+		// 現在の () 深さを振っておく
+		token.GroupLevel = m_groupLevel;
+
 		// 定数は出力リストへ積んでいく
 		if (token.Type == RPN_TT_NumericLiteral)
 		{
-			m_rpnTokenList->Add(token);
+			m_tmpRPNTokenList.Add(&token);
 		}
 		else if (token.IsOperator())
 		{
 			switch (token.Type)
 			{
-			case RPN_TT_OP_LeftParen:
+			case RPN_TT_OP_GroupStart:
+				m_groupLevel++;
 				m_opStack.Push(&token);
 				break;
-			case RPN_TT_OP_RightParen:
+			case RPN_TT_OP_GroupEnd:
 				PopOpStackGroupEnd();
+				CloseGroup();	// 同レベル () 内の ':' 全てに CondGoto を振る
+				m_groupLevel--;
 				break;
 			case RPN_TT_OP_CondTrue:
-				//PushOpStack(&token);
-				//rpnExpr.Add(oprtr);
+				PushOpStack(&token);
+				m_tmpRPNTokenList.Add(&token);
 				break;
 			case RPN_TT_OP_CondFalse:
+			{
+				RPNTokenT* condTrue = PopOpStackCondFalse();
+				if (!condTrue) { return; }		// Error : ':' に対応する ? が見つからなかった
+				m_tmpRPNTokenList.Add(&token);
+				m_condStack.Push(&token);
+				condTrue->CondGoto = m_tmpRPNTokenList.GetCount();	// ジャンプ先として ':' の次を指す
 				break;
+			}
 			// 通常の演算子
 			default:
 				PushOpStack(&token);
@@ -256,12 +269,17 @@ void RPNParser<TChar>::Parse()
 		}
 	}
 
+	PopOpStackCondFalse();
+
+	// 同レベル () 内の ':' 全てに CondGoto を振る
+	CloseGroup();
+
 	// 演算子用スタックに残っている要素を全て出力リストに移す
 	while (!m_opStack.IsEmpty())
 	{
 		RPNTokenT* top;
 		m_opStack.Pop(&top);
-		if (top->Type == RPN_TT_OP_LeftParen) {
+		if (top->Type == RPN_TT_OP_GroupStart) {
 			//TODO: error括弧が閉じていない
 			break;
 		}
@@ -269,7 +287,15 @@ void RPNParser<TChar>::Parse()
 			//TODO: error条件演算子が閉じていない
 			break;
 		}
-		m_rpnTokenList->Add(*top);
+		m_tmpRPNTokenList.Add(top);
+	}
+
+	// 出力用のリストへ、トークンのコピーを作成しつつ移す
+	m_rpnTokenList.Attach(LN_NEW RPNTokenListT());
+	m_rpnTokenList->Reserve(m_tmpRPNTokenList.GetCount());
+	LN_FOREACH(RPNTokenT* token, m_tmpRPNTokenList)
+	{
+		m_rpnTokenList->Add(*token);
 	}
 }
 
@@ -286,7 +312,7 @@ void RPNParser<TChar>::PushOpStack(RPNTokenT* token)	// Operator または CondTrue
 	while (!m_opStack.IsEmpty())
 	{
 		RPNTokenT* top = m_opStack.GetTop();
-		if (top->Type == RPN_TT_OP_LeftParen) {
+		if (top->Type == RPN_TT_OP_GroupStart) {
 			// '(' は特別扱い。演算子の優先度でどうこうできない。
 			// 別途、')' が見つかったとき、対応する '(' までのスタック要素を全てを出力リストへ移す。
 			break;
@@ -295,7 +321,7 @@ void RPNParser<TChar>::PushOpStack(RPNTokenT* token)	// Operator または CondTrue
 		if (top->Precedence < token->Precedence)	// [+ * ← +] と言う状態なら、*(5) +(6) なので * を取り除く
 		{
 			// 出力リストへ
-			m_rpnTokenList->Add(*top);
+			m_tmpRPNTokenList.Add(top);
 			m_opStack.Pop();
 		}
 		else {
@@ -309,20 +335,80 @@ void RPNParser<TChar>::PushOpStack(RPNTokenT* token)	// Operator または CondTrue
 // GroupEnd (')') が見つかったら呼ばれる
 //-----------------------------------------------------------------------------
 template<typename TChar>
-void RPNParser<TChar>::PopOpStackGroupEnd()
+RPNToken<TChar>* RPNParser<TChar>::PopOpStackGroupEnd()
 {
 	// 対応する GroupStart ('(') が見つかるまでスタックの演算子を出力リストへ移していく。
+	RPNTokenT* top = NULL;
 	while (!m_opStack.IsEmpty())
 	{
-		RPNTokenT* top = m_opStack.GetTop();
-		if (top->Type == RPN_TT_OP_LeftParen) {
+		top = m_opStack.GetTop();
+		if (top->Type == RPN_TT_OP_GroupStart) {
 			m_opStack.Pop();	// GroupStart は捨てる
 			break;
 		}
 
 		// 出力リストへ
-		m_rpnTokenList->Add(*top);
+		m_tmpRPNTokenList.Add(top);
 		m_opStack.Pop();
+		top = NULL;
+	}
+
+	if (!top) {
+		// TODO: error 必ず GroupStart が無ければならない
+		// ↑×。最後にも1度呼ばれるためエラーにしてはいけない
+		return NULL;
+	}
+	return top;
+}
+
+//-----------------------------------------------------------------------------
+// CondFalse (':') が見つかったら呼ばれる
+//-----------------------------------------------------------------------------
+template<typename TChar>
+RPNToken<TChar>* RPNParser<TChar>::PopOpStackCondFalse()
+{
+	// 対応する CondStart ('?') が見つかるまでスタックの演算子を出力リストへ移していく。
+	RPNTokenT* top = NULL;
+	while (!m_opStack.IsEmpty())
+	{
+		top = m_opStack.GetTop();
+		if (top->Type == RPN_TT_OP_CondTrue) {
+			m_opStack.Pop();	// CondTrue は捨てる
+			break;
+		}
+
+		// 出力リストへ
+		m_tmpRPNTokenList.Add(top);
+		m_opStack.Pop();
+	}
+	/* 
+		↑直前の ? を探しに行くだけで良い。
+		( ) と同じ考え方。
+		x    ?    x ? x : x    :    x ? x : x
+	*/
+
+	if (!top) {
+		// TODO: error 必ず CondTrue が無ければならない
+		return NULL;
+	}
+	return top;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+template<typename TChar>
+void RPNParser<TChar>::CloseGroup()
+{
+	// 現在の () レベルの ':' 全てに CondGoto を振り、スタックから取り除く
+	while (!m_condStack.IsEmpty())
+	{
+		RPNTokenT* condFalse = m_condStack.GetTop();
+		if (condFalse->GroupLevel < m_groupLevel) {
+			break;
+		}
+		condFalse->CondGoto = m_tmpRPNTokenList.GetCount();
+		m_condStack.Pop();
 	}
 }
 

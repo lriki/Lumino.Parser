@@ -17,8 +17,8 @@ enum RPNTokenType
 
 	RPN_TT_NumericLiteral,			///< 数値リテラル
 
-	RPN_TT_OP_LeftParen,			// (
-	RPN_TT_OP_RightParen,			// )
+	RPN_TT_OP_GroupStart,			// (
+	RPN_TT_OP_GroupEnd,				// )
 
 	RPN_TT_OP_UnaryPlus,			// + (Unary)
 	RPN_TT_OP_UnaryMinus,			// - (Unary)
@@ -76,7 +76,7 @@ template<typename TChar>
 class RPNToken
 {
 public:
-	bool IsOperator() const { return RPN_TT_OP_LeftParen <= Type && Type <= RPN_TT_OP_CondFalse; }
+	bool IsOperator() const { return RPN_TT_OP_GroupStart <= Type && Type <= RPN_TT_OP_CondFalse; }
 
 	
 
@@ -85,6 +85,8 @@ public:
 	int					Precedence;		///< 優先順位
 	OpeatorAssociation	Association;	///< 結合方向
 	const Token<TChar>*	SourceToken;
+	int					GroupLevel;		///< () ネストの深さ。ルートは 0
+	int					CondGoto;
 };
 
 template<typename TChar>
@@ -102,14 +104,19 @@ private:
 	void TokenizeCppConst(Position exprBegin, Position exprEnd);
 	void Parse();
 	void PushOpStack(RPNTokenT* token);
-	void PopOpStackGroupEnd();
+	RPNToken<TChar>* PopOpStackGroupEnd();
+	RPNToken<TChar>* PopOpStackCondFalse();
+	void CloseGroup();
 
 private:
 	RefPtr<RPNTokenListT>	m_tokenList;
-
 	RefPtr<RPNTokenListT>	m_rpnTokenList;
+
+	//RefPtr<RPNTokenListT>	m_rpnTokenList;
+	ArrayList<RPNTokenT*>	m_tmpRPNTokenList;
 	Stack<RPNTokenT*>		m_opStack;		///< 演算子用の作業スタック
-	Stack<RPNTokenT*>		m_condStack;	///< 条件演算子用の作業スタック
+	Stack<RPNTokenT*>		m_condStack;	///< 条件演算子用の作業スタック (: を格納していく)
+	int						m_groupLevel;
 };
 
 } // namespace Parser

@@ -78,10 +78,68 @@ TEST_F(Test_RPNParser, Parse)
 		ASSERT_EQ(RPN_TT_OP_Multiply, rpnTokens->GetAt(4).Type);
 	}
 
-
 	// ’P€‰‰Zq
+	{
+		ByteBuffer buf(_T("1 + -2"));
+		ErrorManager err;
+		TokenListPtr tokens(CppLexer<TCHAR>::Lex(&buf, &err));
+		RPNTokenListPtr rpnTokens(RPNParser<TCHAR>::ParseCppConstExpression(tokens->begin(), tokens->end(), &err));
+
+		ASSERT_EQ(4, rpnTokens->GetCount());
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(1).Type);
+		ASSERT_EQ(RPN_TT_OP_UnaryMinus, rpnTokens->GetAt(2).Type);
+		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(3).Type);
+	}
 
 	// ğŒ‰‰Zq
+	{
+		ByteBuffer buf(_T("1 != 2 ? 3 + 4 : 5 + 6"));
+		ErrorManager err;
+		TokenListPtr tokens(CppLexer<TCHAR>::Lex(&buf, &err));
+		RPNTokenListPtr rpnTokens(RPNParser<TCHAR>::ParseCppConstExpression(tokens->begin(), tokens->end(), &err));
+
+		ASSERT_EQ(11, rpnTokens->GetCount());
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(1).Type);
+		ASSERT_EQ(RPN_TT_OP_CompNotEqual, rpnTokens->GetAt(2).Type);
+		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(3).Type);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(4).Type);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(5).Type);
+		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(6).Type);
+		ASSERT_EQ(RPN_TT_OP_CondFalse, rpnTokens->GetAt(7).Type);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(8).Type);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(9).Type);
+		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(10).Type);
+	}
+	
+	// ğŒ‰‰Zq
+	{
+		ByteBuffer buf(_T("1 ? (5 ? 6 : 7) : (3 ? 4 : (5 ? 6 : 7))"));
+		ErrorManager err;
+		TokenListPtr tokens(CppLexer<TCHAR>::Lex(&buf, &err));
+		RPNTokenListPtr rpnTokens(RPNParser<TCHAR>::ParseCppConstExpression(tokens->begin(), tokens->end(), &err));
+
+		ASSERT_EQ(17, rpnTokens->GetCount());
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type); 
+		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(1).Type);	ASSERT_EQ(8, rpnTokens->GetAt(1).CondGoto);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(2).Type);
+		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(3).Type);	ASSERT_EQ(6, rpnTokens->GetAt(3).CondGoto);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(4).Type);
+		ASSERT_EQ(RPN_TT_OP_CondFalse, rpnTokens->GetAt(5).Type);	ASSERT_EQ(7, rpnTokens->GetAt(5).CondGoto);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(6).Type);
+		ASSERT_EQ(RPN_TT_OP_CondFalse, rpnTokens->GetAt(7).Type);	ASSERT_EQ(17, rpnTokens->GetAt(7).CondGoto);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(8).Type);
+		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(9).Type);	ASSERT_EQ(12, rpnTokens->GetAt(9).CondGoto);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(10).Type);
+		ASSERT_EQ(RPN_TT_OP_CondFalse, rpnTokens->GetAt(11).Type);	ASSERT_EQ(17, rpnTokens->GetAt(11).CondGoto);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(12).Type);
+		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(13).Type);	ASSERT_EQ(16, rpnTokens->GetAt(13).CondGoto);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(14).Type);
+		ASSERT_EQ(RPN_TT_OP_CondFalse, rpnTokens->GetAt(15).Type);	ASSERT_EQ(17, rpnTokens->GetAt(15).CondGoto);
+		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(16).Type);
+	}
+
 	//{
 	//	ByteBuffer buf(_T("1 + 2 ? 3 + 4 : 5 + 6"));
 	//	ErrorManager err;
