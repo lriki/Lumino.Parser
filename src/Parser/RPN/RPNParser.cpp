@@ -27,7 +27,7 @@ namespace Parser
 */
 
 /*
-	条件演算子の解析
+	■ 条件演算子の解析
 
 		1 ? 6 ? 7 : 8 : 3 ? 4 : 5		分かりやすく括弧を付けると→ 1 ? (6 ? 7 : 8) : (3 ? 4 : 5)
 
@@ -46,6 +46,35 @@ namespace Parser
 	?: 以下の優先度の演算子は代入系とthrow、, だが、これらを考慮しない場合は
 	たとえどれだけ : で区切られようとも : でジャンプするのは必ず式の終端である。
 
+*/
+
+/*
+	■ 関数呼び出しの解析
+
+	"1+2" のような関数呼び出しの無い単純な式でも、一番外側にはダミーの関数呼び出しがあるものとして解析する。
+	イメージとしては "_(1+2)"。
+
+	式の終端を ) であると考えることで、条件演算子や , 演算子との兼ね合いも少し楽になる。かも。
+	↓
+	, は全て、引数の区切りと考える。カンマ演算子も。
+	そして、ダミー関数は一番後ろの引数の評価結果を返す関数とする。
+
+	"A(1+1,2)" のパース結果は、
+	
+		1 1 + 2 A _
+
+	となり、トークン A と _ の種別は「関数」。プロパティとして、引数の数を持つ。(_ はダミー関数である点に注意)
+	評価では、この引数の数だけオペランド(評価済み定数)を取り出し、関数の処理を行う。
+	A はユーザー定義。_ は最後の引数を返す。
+
+
+	"A(1+2,3+4,5+6)" をパーすするときは・・・
+	, が見つかるたびに、opStack にある FuncCall までを出力リストに移す。
+	) が見つかったら、FuncCall までを移し変えた後、FuncCall も消す。
+	
+
+
+	
 */
 
 
@@ -70,7 +99,12 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 {
 	// とりあえず入力トークン数でメモリ確保 (スペースが含まれていれば Tokenize 後の使用量は少なくなるはず)
 	m_tokenList.Attach(LN_NEW RPNTokenListT());
-	m_tokenList->Reserve(exprEnd - exprBegin);
+	m_tokenList->Reserve(exprEnd - exprBegin + 2);
+
+	// 実引数リスト解析処理が , 演算子の解析を兼ねられるように、リスト先頭にダミーの FuncCall を入れておく
+	RPNTokenT headToken;
+	headToken.Type = RPN_TT_OP_FuncCall;
+	m_tokenList->Add(headToken);
 
 	Position pos = exprBegin;
 
@@ -83,22 +117,32 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 		case TokenType_Comment:
 		case TokenType_EscNewLine:
 			break;	// これらは空白扱い。何もせず次へ
+		case TokenType_Identifier:
+		{
+			RPNTokenT token;
+			token.Type = RPN_TT_Identifier;
+			token.SourceToken = &(*pos);
+			m_tokenList->Add(token);
+			break;
+		}
 		case TokenType_NumericLiteral:
+		{
 			RPNTokenT token;
 			token.Type = RPN_TT_NumericLiteral;
 			token.SourceToken = &(*pos);
 			m_tokenList->Add(token);
 			break;
+		}
 		case TokenType_Operator:
 		{
 			static const RPNTokenType CppTypeToRPNType[] =
 			{
-								/* TT_CppOP_SeparatorBegin		*/	RPN_TT_Unknown,
+				/* TT_CppOP_SeparatorBegin		*/	RPN_TT_Unknown,
 				/* TT_CppOP_SharpSharp  	##	*/	RPN_TT_Unknown,
 				/* TT_CppOP_Sharp			#	*/	RPN_TT_Unknown,
 				/* TT_CppOP_ArrowAsterisk	->*	*/	RPN_TT_Unknown,
 				/* TT_CppOP_Arrow			->	*/	RPN_TT_Unknown,
-				/* TT_CppOP_Comma			,	*/	RPN_TT_Unknown,
+				/* TT_CppOP_Comma			,	*/	RPN_TT_OP_Comma,
 				/* TT_CppOP_Increment		++	*/	RPN_TT_Unknown,
 				/* TT_CppOP_Decrement		--	*/	RPN_TT_Unknown,
 				/* TT_CppOP_LogicalAnd		&&	*/	RPN_TT_OP_LogicalAnd,
@@ -123,7 +167,7 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 				/* TT_CppOP_Minul			-	*/	RPN_TT_OP_BinaryMinus,
 				/* TT_CppOP_Asterisk		*	*/	RPN_TT_OP_Multiply,
 				/* TT_CppOP_Slash			/	*/	RPN_TT_OP_Divide,
-				/* TT_CppOP_Parseint		%	*/	RPN_TT_OP_IntegerDivide,
+				/* TT_CppOP_Parseint		%	*/	RPN_TT_OP_Modulus,
 				/* TT_CppOP_Ampersand		&	*/	RPN_TT_OP_BitwiseAnd,
 				/* TT_CppOP_Pipe			|	*/	RPN_TT_OP_BitwiseOr,
 				/* TT_CppOP_Tilde			~	*/	RPN_TT_OP_BitwiseNot,
@@ -155,6 +199,7 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 			static const CppTokenInfo TokenInfoTable[] =
 			{
 				{ 0,	OpeatorAssociation_Left },	// RPN_TT_Unknown,				// (Dummy)
+				{ 0,	OpeatorAssociation_Left },	// RPN_TT_Identifier,			// (Dummy)
 				{ 0,	OpeatorAssociation_Left },	// RPN_TT_NumericLiteral,		// (Dummy)
 				{ 2,	OpeatorAssociation_Left },	// RPN_TT_OP_GroupStart,		// (
 				{ 2,	OpeatorAssociation_Left },	// RPN_TT_OP_GroupEnd,			// )
@@ -181,32 +226,45 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 				{ 13,	OpeatorAssociation_Left },	// RPN_TT_OP_LogicalAnd,		// &&
 				{ 14,	OpeatorAssociation_Left },	// RPN_TT_OP_LogicalOr,			// ||
 				{ 15,	OpeatorAssociation_Right },	// RPN_TT_OP_CondTrue,			// ? (条件演算子)
-				{ 15,	OpeatorAssociation_Right },	// RPN_TT_OP_CondFalse,			// : (条件演算子)
+				{ 15,	OpeatorAssociation_Left },	// RPN_TT_OP_CondFalse,			// : (条件演算子)
+				{ 17,	OpeatorAssociation_Left },	// RPN_TT_OP_Comma,				// , (カンマ演算子 or 実引数区切り文字)
+				{ 0,	OpeatorAssociation_Left },	// RPN_TT_OP_FuncCall,			// (Dummy)
 			};
 			assert(LN_ARRAY_SIZE_OF(TokenInfoTable) == RPN_TT_Max);
 
 			RPNTokenT token;
 			token.Type = CppTypeToRPNType[pos->GetLangTokenType() - TT_CppOP_SeparatorBegin];
 
-			// + or - の場合は単項演算子であるかをここで確認する。
-			// ひとつ前の有効トークンが演算子であれば単項演算子である。
-			if (token.Type == RPN_TT_OP_BinaryPlus || token.Type == RPN_TT_OP_BinaryMinus)
+			// ( かつひとつ前が識別子の場合は関数呼び出しとする
+			if (token.Type == RPN_TT_OP_GroupStart &&
+				!m_tokenList->IsEmpty() &&
+				m_tokenList->GetLast().Type == RPN_TT_Identifier)
 			{
-				if (!m_tokenList->IsEmpty() && m_tokenList->GetLast().IsOperator()) 
+				// Identifer の種類を FuncCall に変更し、( はトークンとして抽出しない
+				m_tokenList->GetLast().Type = RPN_TT_OP_FuncCall;
+			}
+			else
+			{
+				// + or - の場合は単項演算子であるかをここで確認する。
+				// ひとつ前の有効トークンが演算子であれば単項演算子である。
+				if (token.Type == RPN_TT_OP_BinaryPlus || token.Type == RPN_TT_OP_BinaryMinus)
 				{
-					if (token.Type == RPN_TT_OP_BinaryPlus) {
-						token.Type = RPN_TT_OP_UnaryPlus;
-					}
-					else {	// if (token.Type == RPN_TT_OP_BinaryMinus)
-						token.Type = RPN_TT_OP_UnaryMinus;
+					if (!m_tokenList->IsEmpty() && m_tokenList->GetLast().IsOperator())
+					{
+						if (token.Type == RPN_TT_OP_BinaryPlus) {
+							token.Type = RPN_TT_OP_UnaryPlus;
+						}
+						else {	// if (token.Type == RPN_TT_OP_BinaryMinus)
+							token.Type = RPN_TT_OP_UnaryMinus;
+						}
 					}
 				}
-			}
 
-			token.Precedence = TokenInfoTable[token.Type].Precedence;
-			token.Association = TokenInfoTable[token.Type].Association;
-			token.SourceToken = &(*pos);
-			m_tokenList->Add(token);
+				token.Precedence = TokenInfoTable[token.Type].Precedence;
+				token.Association = TokenInfoTable[token.Type].Association;
+				token.SourceToken = &(*pos);
+				m_tokenList->Add(token);
+			}
 			break;
 		}
 		default:
@@ -214,6 +272,11 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 			break;
 		}
 	}
+
+	// 実引数リスト解析処理が , 演算子の解析を兼ねられるように、リスト終端にダミーの GroupEnd を入れておく
+	RPNTokenT tailToken;
+	tailToken.Type = RPN_TT_OP_GroupEnd;
+	m_tokenList->Add(tailToken);
 }
 
 //-----------------------------------------------------------------------------
@@ -223,12 +286,12 @@ template<typename TChar>
 void RPNParser<TChar>::Parse()
 {
 	m_tmpRPNTokenList.Reserve(m_tokenList->GetCount());
-	m_groupLevel = 0;
+	m_lastToken = NULL;
 
 	LN_FOREACH(RPNTokenT& token, *m_tokenList)
 	{
 		// 現在の () 深さを振っておく
-		token.GroupLevel = m_groupLevel;
+		token.GroupLevel = m_groupStack.GetCount();
 
 		// 定数は出力リストへ積んでいく
 		if (token.Type == RPN_TT_NumericLiteral)
@@ -239,14 +302,20 @@ void RPNParser<TChar>::Parse()
 		{
 			switch (token.Type)
 			{
-			case RPN_TT_OP_GroupStart:
-				m_groupLevel++;
+			case RPN_TT_OP_FuncCall:
+				m_groupStack.Push(&token);
 				m_opStack.Push(&token);
 				break;
-			case RPN_TT_OP_GroupEnd:
-				PopOpStackGroupEnd();
-				CloseGroup();	// 同レベル () 内の ':' 全てに CondGoto を振る
-				m_groupLevel--;
+			case RPN_TT_OP_GroupStart:
+				m_groupStack.Push(&token);
+				m_opStack.Push(&token);
+				break;
+			case RPN_TT_OP_GroupEnd:			// m_tokenList の最後はダミーの ) を入れているため、最後に1度必ず通る
+				if (m_lastToken->Type != RPN_TT_OP_GroupStart) {
+					m_groupStack.GetTop()->ElementCount++;	// () 無いの引数の数を増やす。ただし、"Func()" のように実引数が無ければ増やさない
+				}
+				PopOpStackGroupEnd(false);		// opStack の GroupStart または FuncCall までの内容を出力リストに移す。GroupStart または FuncCall は削除する。
+				CloseGroup(false);				// 同レベル () 内の ':' 全てに CondGoto を振る。最後に現在のグループ情報を削除する
 				break;
 			case RPN_TT_OP_CondTrue:
 				PushOpStack(&token);
@@ -261,18 +330,30 @@ void RPNParser<TChar>::Parse()
 				condTrue->CondGoto = m_tmpRPNTokenList.GetCount();	// ジャンプ先として ':' の次を指す
 				break;
 			}
+			case RPN_TT_OP_Comma:
+				// 現在のグループ内部の実引数の数をインクリメント。最初の , の場合は 1 余分に++する。
+				//if (m_groupStack.GetTop()->ElementCount == 0) {	
+				//	m_groupStack.GetTop()->ElementCount++;
+				//}
+				m_groupStack.GetTop()->ElementCount++;	
+
+				PopOpStackGroupEnd(true);				// ( ～ , までの opStack の内容を出力リストに移す。ただし、( は残したままにする
+				CloseGroup(true);						// グループ内の条件演算子の処理を行う。ただし、その後グループ情報は削除しない
+				break;
 			// 通常の演算子
 			default:
 				PushOpStack(&token);
 				break;
 			}
 		}
+
+		m_lastToken = &token;
 	}
 
 	PopOpStackCondFalse();
 
-	// 同レベル () 内の ':' 全てに CondGoto を振る
-	CloseGroup();
+	// 同レベル () 内の ':' 全てに CondGoto を振る (一番外側の GroupEnd を閉じるという考え)
+	//CloseGroup();
 
 	// 演算子用スタックに残っている要素を全て出力リストに移す
 	while (!m_opStack.IsEmpty())
@@ -312,8 +393,8 @@ void RPNParser<TChar>::PushOpStack(RPNTokenT* token)	// Operator または CondTrue
 	while (!m_opStack.IsEmpty())
 	{
 		RPNTokenT* top = m_opStack.GetTop();
-		if (top->Type == RPN_TT_OP_GroupStart) {
-			// '(' は特別扱い。演算子の優先度でどうこうできない。
+		if (top->Type == RPN_TT_OP_GroupStart || top->Type == RPN_TT_OP_FuncCall) {
+			// '(' は特別扱い。とにかく演算子スタックの先頭に積む。(演算子の優先度でどうこうできない)
 			// 別途、')' が見つかったとき、対応する '(' までのスタック要素を全てを出力リストへ移す。
 			break;
 		}
@@ -332,18 +413,30 @@ void RPNParser<TChar>::PushOpStack(RPNTokenT* token)	// Operator または CondTrue
 }
 
 //-----------------------------------------------------------------------------
-// GroupEnd (')') が見つかったら呼ばれる
+// GroupEnd (')') または , が見つかったら呼ばれる
 //-----------------------------------------------------------------------------
 template<typename TChar>
-RPNToken<TChar>* RPNParser<TChar>::PopOpStackGroupEnd()
+RPNToken<TChar>* RPNParser<TChar>::PopOpStackGroupEnd(bool fromArgsSeparator)
 {
 	// 対応する GroupStart ('(') が見つかるまでスタックの演算子を出力リストへ移していく。
 	RPNTokenT* top = NULL;
 	while (!m_opStack.IsEmpty())
 	{
 		top = m_opStack.GetTop();
-		if (top->Type == RPN_TT_OP_GroupStart) {
+		if (top->Type == RPN_TT_OP_GroupStart)
+		{
 			m_opStack.Pop();	// GroupStart は捨てる
+			break;
+		}
+		else if (top->Type == RPN_TT_OP_FuncCall)
+		{
+			// FuncCall は出力リストの末尾に積み、終了する。
+			// ただし、, の場合は積まない。
+			if (!fromArgsSeparator)
+			{
+				m_tmpRPNTokenList.Add(top);	
+				m_opStack.Pop();
+			}
 			break;
 		}
 
@@ -398,17 +491,22 @@ RPNToken<TChar>* RPNParser<TChar>::PopOpStackCondFalse()
 //
 //-----------------------------------------------------------------------------
 template<typename TChar>
-void RPNParser<TChar>::CloseGroup()
+void RPNParser<TChar>::CloseGroup(bool fromArgsSeparator)
 {
 	// 現在の () レベルの ':' 全てに CondGoto を振り、スタックから取り除く
 	while (!m_condStack.IsEmpty())
 	{
 		RPNTokenT* condFalse = m_condStack.GetTop();
-		if (condFalse->GroupLevel < m_groupLevel) {
+		if (condFalse->GroupLevel < m_groupStack.GetCount()) {
 			break;
 		}
 		condFalse->CondGoto = m_tmpRPNTokenList.GetCount();
 		m_condStack.Pop();
+	}
+
+	// グループ情報を1つ削除する。ただし、, の場合は残しておく。
+	if (!fromArgsSeparator) {
+		m_groupStack.Pop();
 	}
 }
 
