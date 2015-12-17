@@ -5,8 +5,7 @@
 #include <Lumino/IO/PathName.h>
 #include "../ParserObject.h"
 
-namespace Lumino
-{
+LN_NAMESPACE_BEGIN
 namespace Parser
 {
 class ErrorManager;
@@ -114,10 +113,10 @@ class RPNParser
 {
 public:
 	typename typedef RPNToken<TChar>		RPNTokenT;
-	typename typedef ArrayList<RPNTokenT>	RPNTokenListT;
+	typename typedef Array<RPNTokenT>	RPNTokenListT;
 
 public:
-	static ArrayList< RPNToken<TChar> >* ParseCppConstExpression(Position exprBegin, Position exprEnd, ErrorManager* errorInfo);
+	static Array< RPNToken<TChar> >* ParseCppConstExpression(Position exprBegin, Position exprEnd, ErrorManager* errorInfo);
 
 private:
 	void TokenizeCppConst(Position exprBegin, Position exprEnd);
@@ -133,7 +132,7 @@ private:
 	RefPtr<RPNTokenListT>	m_rpnTokenList;
 
 	//RefPtr<RPNTokenListT>	m_rpnTokenList;
-	ArrayList<RPNTokenT*>	m_tmpRPNTokenList;
+	Array<RPNTokenT*>		m_tmpRPNTokenList;
 	Stack<RPNTokenT*>		m_opStack;			///< 演算子用の作業スタック
 	Stack<RPNTokenT*>		m_condStack;		///< 条件演算子用の作業スタック。: を格納していく
 	Stack<RPNTokenT*>		m_groupStack;		///< () の作業スタック。( または FuncCall を格納していく
@@ -141,4 +140,4 @@ private:
 };
 
 } // namespace Parser
-} // namespace Lumino
+LN_NAMESPACE_END

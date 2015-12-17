@@ -7,11 +7,7 @@
     <ClCompile Include="..\..\test\gtest\src\gtest_main.cc">
       <Filter>gtest</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\test\Test_CppLexer.cpp" />
-    <ClCompile Include="..\..\test\Test_SimpleCppIncludePreprocessor.cpp" />
-    <ClCompile Include="..\..\test\Test_CppPreprocessor.cpp" />
-    <ClCompile Include="..\..\test\Test_CppParser.cpp" />
-    <ClCompile Include="..\..\test\Test_RPNParser.cpp" />
+    <ClCompile Include="..\..\test\Test_Parser_CppLexer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gtest">

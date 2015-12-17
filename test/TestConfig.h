@@ -3,5 +3,7 @@
 #include <gtest/gtest.h>
 #include <LuminoCore.h>
 #include <Lumino/Testing/TestUtils.h>
-#include "../include/Lumino/Parser/CppLexer.h"
-#include "../include/Lumino/Parser/ErrorInfo.h"
+#include "../src/Parser/Frontend/Cpp/CppLexer.h"
+#include "../src/Parser/DiagnosticsManager.h"
+using namespace ln;
+using namespace ln::parser;

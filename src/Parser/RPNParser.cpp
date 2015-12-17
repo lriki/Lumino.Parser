@@ -1,9 +1,9 @@
 
+#if 0
 #include <Lumino/Parser/CppLexer.h>
 #include <Lumino/Parser/RPN/RPNParser.h>
 
-namespace Lumino
-{
+LN_NAMESPACE_BEGIN
 namespace Parser
 {
 
@@ -515,4 +515,5 @@ template class RPNParser<char>;
 template class RPNParser<wchar_t>;
 
 } // namespace Parser
-} // namespace Lumino
+LN_NAMESPACE_END
+#endif

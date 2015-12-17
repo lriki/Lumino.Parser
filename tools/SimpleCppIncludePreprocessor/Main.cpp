@@ -1,8 +1,8 @@
 
 #include "../../external/Lumino.Core/include/LuminoCore.h"
-#include "../../include/Lumino/Parser/ErrorInfo.h"
-#include "../../include/Lumino/Parser/Tools/SimpleCppIncludePreprocessor.h"
-using namespace Lumino;
+//#include "../../include/Lumino/Parser/ErrorInfo.h"
+//#include "../../include/Lumino/Parser/Tools/SimpleCppIncludePreprocessor.h"
+using namespace ln;
 
 void PrintHelp()
 {
@@ -15,14 +15,14 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	Parser::ErrorManager errorManager;
+	//Parser::ErrorManager errorManager;
 
 
-	Parser::SimpleCppIncludePreprocessor<char> prepro;
-	prepro.Analyze(PathName(argv[1]), &errorManager);
+	//Parser::SimpleCppIncludePreprocessor<char> prepro;
+	//prepro.Analyze(PathName(argv[1]), &errorManager);
 
-	FileStream stream(_T("out.h"), FileMode_Create, FileAccess_Write);
-	prepro.GetTokenList()->DumpText(&stream);
+	//FileStream stream(_T("out.h"), FileMode_Create, FileAccess_Write);
+	//prepro.GetTokenList()->DumpText(&stream);
 
 	return 0;
 }

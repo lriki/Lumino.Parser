@@ -2,89 +2,53 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Parser">
-      <UniqueIdentifier>{e35a1f41-de85-4f87-a51e-061503497be6}</UniqueIdentifier>
+      <UniqueIdentifier>{628c8e8a-ecdd-4728-a37b-6a0871a3f349}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Parser\Tools">
-      <UniqueIdentifier>{0390e6f9-97fd-4788-a7c5-c9984163acc2}</UniqueIdentifier>
+    <Filter Include="Parser\Frontend">
+      <UniqueIdentifier>{9778bdd6-3200-45c7-aa71-9534efc91d2a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Parser\Cpp">
-      <UniqueIdentifier>{6129353c-4938-4355-a85f-bf53e17792a4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Parser\RPN">
-      <UniqueIdentifier>{cf037c64-d1c6-43fa-92e0-10d2088d49a7}</UniqueIdentifier>
+    <Filter Include="Parser\Frontend\Cpp">
+      <UniqueIdentifier>{0a18472c-73c9-4ecc-9fa2-726f167cfbd7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\Parser\Lexer.cpp">
+    <ClInclude Include="..\..\src\Parser\RPNParser.h">
       <Filter>Parser</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Parser\CppLexer.cpp">
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\Token.h">
       <Filter>Parser</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Parser\ErrorInfo.cpp">
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\Common.h">
       <Filter>Parser</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Parser\Tools\SimpleCppIncludePreprocessor.cpp">
-      <Filter>Parser\Tools</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Parser\ParserUtils.cpp">
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\FrontEnd\Lexer.h">
+      <Filter>Parser\Frontend</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\Frontend\Cpp\CppLexer.h">
+      <Filter>Parser\Frontend\Cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\GenericParserTypedef.h">
       <Filter>Parser</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Parser\Cpp\CppPreprocessor.cpp">
-      <Filter>Parser\Cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Parser\Cpp\CppParser.cpp">
-      <Filter>Parser\Cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Parser\Cpp\CppParserCoreBase.cpp">
-      <Filter>Parser\Cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Parser\Token.cpp">
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\TokenList.h">
       <Filter>Parser</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Parser\RPN\RPNParser.cpp">
-      <Filter>Parser\RPN</Filter>
-    </ClCompile>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\DiagnosticsManager.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\Lumino\Parser\Lexer.h">
+    <ClCompile Include="..\..\src\Parser\RPNParser.cpp">
       <Filter>Parser</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Lumino\Parser\Token.h">
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\FrontEnd\Lexer.cpp">
+      <Filter>Parser\Frontend</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\Frontend\Cpp\CppLexer.cpp">
+      <Filter>Parser\Frontend\Cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\DiagnosticsManager.cpp">
       <Filter>Parser</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Lumino\Parser\ErrorInfo.h">
-      <Filter>Parser</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Lumino\Parser\CppLexer.h">
-      <Filter>Parser</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Lumino\Parser\Tools\SimpleCppIncludePreprocessor.h">
-      <Filter>Parser\Tools</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Parser\ParserUtils.h">
-      <Filter>Parser</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Lumino\Parser\String.h">
-      <Filter>Parser</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Lumino\Parser\TokenList.h">
-      <Filter>Parser</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Lumino\Parser\Cpp\CppPreprocessor.h">
-      <Filter>Parser\Cpp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Lumino\Parser\Cpp\CppParser.h">
-      <Filter>Parser\Cpp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Parser\Cpp\CppParserCoreBase.h">
-      <Filter>Parser\Cpp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Lumino\Parser\RPN\RPNParser.h">
-      <Filter>Parser\RPN</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Lumino\Parser\ParserObject.h">
-      <Filter>Parser</Filter>
-    </ClInclude>
+    </ClCompile>
   </ItemGroup>
 </Project>
