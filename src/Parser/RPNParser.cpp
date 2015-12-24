@@ -1,10 +1,10 @@
 
-#if 0
-#include <Lumino/Parser/CppLexer.h>
-#include <Lumino/Parser/RPN/RPNParser.h>
+#include "Frontend\Cpp\CppLexer.h"
+#include "DiagnosticsManager.h"
+#include "RPNParser.h"
 
 LN_NAMESPACE_BEGIN
-namespace Parser
+namespace parser
 {
 
 //template<typename TChar>
@@ -68,41 +68,110 @@ namespace Parser
 	A はユーザー定義。_ は最後の引数を返す。
 
 
-	"A(1+2,3+4,5+6)" をパーすするときは・・・
+	"A(1+2,3+4,5+6)" をパースするときは・・・
 	, が見つかるたびに、opStack にある FuncCall までを出力リストに移す。
 	) が見つかったら、FuncCall までを移し変えた後、FuncCall も消す。
 	
+	■ カンマ演算子の解析
+	
+	前述の通り、ダミー関数を利用する。
+	ダミー関数は一番後ろの引数の評価結果を返す関数とする。
 
 
 	
 */
 
 
+
+struct TokenTypeTableItem
+{
+	RpnTokenGroup		tokenGroup;
+	RpnOperatorGroup	operatorGroup;
+};
+static TokenTypeTableItem g_tokenTypeTable[] = 
+{
+	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown },		// RPN_TT_Unknown = 0,
+	{ RpnTokenGroup::Identifier,	RpnOperatorGroup::Unknown },		// RPN_TT_Identifier,				///< 識別子
+	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown },		// RPN_TT_NumericLiteral,			///< 数値リテラル
+	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown },		// RPN_TT_OP_GroupStart,			// (	※ 括弧はパースで取り除かれるので Unknown
+	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown },		// RPN_TT_OP_GroupEnd,				// )	※ 括弧はパースで取り除かれるので Unknown
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic },		// RPN_TT_OP_UnaryPlus,			// + (Unary)
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic },		// RPN_TT_OP_UnaryMinus,			// - (Unary)
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical },		// RPN_TT_OP_LogicalNot,			// !
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise },		// RPN_TT_OP_BitwiseNot,			// ~
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic },		// RPN_TT_OP_Multiply,				// *
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic },		// RPN_TT_OP_Divide,				// /
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic },		// RPN_TT_OP_Modulus,				// %
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic },		// RPN_TT_OP_BinaryPlus,			// + (Binary)
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic },		// RPN_TT_OP_BinaryMinus,			// - (Binary)
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise },		// RPN_TT_OP_LeftShift,			// <<
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise },		// RPN_TT_OP_RightShift,			// >>
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison },		// RPN_TT_OP_CompLessThan,			// <
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison },		// RPN_TT_OP_CompLessThanEqual,	// <=
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison },		// RPN_TT_OP_CompGreaterThen,		// >
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison },		// RPN_TT_OP_CompGreaterThenEqual,	// >=
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison },		// RPN_TT_OP_CompEqual,			// ==
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison },		// RPN_TT_OP_CompNotEqual,			// !=
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise },		// RPN_TT_OP_BitwiseAnd,			// &
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise },		// RPN_TT_OP_BitwiseXor,			// ^
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise },		// RPN_TT_OP_BitwiseOr,			// |
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical },		// RPN_TT_OP_LogicalAnd,			// &&
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical },		// RPN_TT_OP_LogicalOr,			// ||
+	{ RpnTokenGroup::CondTrue,		RpnOperatorGroup::Conditional },	// RPN_TT_OP_CondTrue,				// ? (条件演算子)
+	{ RpnTokenGroup::CondFalse,		RpnOperatorGroup::Conditional },	// RPN_TT_OP_CondFalse,			// : (条件演算子)
+	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown },		// RPN_TT_OP_Comma,				// , (カンマ演算子 or 実引数区切り文字)	※未対応
+	{ RpnTokenGroup::Function,		RpnOperatorGroup::Unknown },		// RPN_TT_OP_FuncCall,				///< 関数呼び出し (識別子部分を指す)
+};
+
+
+//=============================================================================
+// RPNToken
+//=============================================================================
+
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-template<typename TChar>
-ArrayList< RPNToken<TChar> >* RPNParser<TChar>::ParseCppConstExpression(Position exprBegin, Position exprEnd, ErrorManager* errorInfo)
+RpnTokenGroup RPNToken::GetTokenGroup() const
 {
-	RPNParser<TChar> parser;
+	return g_tokenTypeTable[Type].tokenGroup;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+RpnOperatorGroup RPNToken::GetOperatorGroup() const
+{
+	return g_tokenTypeTable[Type].operatorGroup;
+}
+
+//=============================================================================
+// RPNParser
+//=============================================================================
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+RefPtr<RPNTokenList> RPNParser::ParseCppConstExpression(Position exprBegin, Position exprEnd, DiagnosticsItemSet* diag)
+{
+	// とりあえずここで追加忘れチェック
+	assert(LN_ARRAY_SIZE_OF(g_tokenTypeTable) == RPN_TT_Max);
+
+	RPNParser parser;
 	parser.TokenizeCppConst(exprBegin, exprEnd);
 	parser.Parse();
-	parser.m_rpnTokenList.SafeAddRef();
 	return parser.m_rpnTokenList;
 }
 
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-template<typename TChar>
-void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
+void RPNParser::TokenizeCppConst(Position exprBegin, Position exprEnd)
 {
 	// とりあえず入力トークン数でメモリ確保 (スペースが含まれていれば Tokenize 後の使用量は少なくなるはず)
-	m_tokenList.Attach(LN_NEW RPNTokenListT());
+	m_tokenList.Attach(LN_NEW RPNTokenList());
 	m_tokenList->Reserve(exprEnd - exprBegin + 2);
 
 	// 実引数リスト解析処理が , 演算子の解析を兼ねられるように、リスト先頭にダミーの FuncCall を入れておく
-	RPNTokenT headToken;
+	RPNToken headToken;
 	headToken.Type = RPN_TT_OP_FuncCall;
 	m_tokenList->Add(headToken);
 
@@ -110,30 +179,30 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 
 	for (; pos != exprEnd; ++pos)
 	{
-		switch (pos->GetTokenType())
+		switch (pos->GetCommonType())
 		{
-		case TokenType_SpaceSequence:
-		case TokenType_NewLine:
-		case TokenType_Comment:
-		case TokenType_EscNewLine:
+		case CommonTokenType::SpaceSequence:
+		case CommonTokenType::NewLine:
+		case CommonTokenType::Comment:
+		case CommonTokenType::Unknown:
 			break;	// これらは空白扱い。何もせず次へ
-		case TokenType_Identifier:
+		case CommonTokenType::Identifier:
 		{
-			RPNTokenT token;
+			RPNToken token;
 			token.Type = RPN_TT_Identifier;
 			token.SourceToken = &(*pos);
 			m_tokenList->Add(token);
 			break;
 		}
-		case TokenType_NumericLiteral:
+		case CommonTokenType::ArithmeticLiteral:
 		{
-			RPNTokenT token;
+			RPNToken token;
 			token.Type = RPN_TT_NumericLiteral;
 			token.SourceToken = &(*pos);
 			m_tokenList->Add(token);
 			break;
 		}
-		case TokenType_Operator:
+		case CommonTokenType::Operator:
 		{
 			static const RPNTokenType CppTypeToRPNType[] =
 			{
@@ -232,7 +301,7 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 			};
 			assert(LN_ARRAY_SIZE_OF(TokenInfoTable) == RPN_TT_Max);
 
-			RPNTokenT token;
+			RPNToken token;
 			token.Type = CppTypeToRPNType[pos->GetLangTokenType() - TT_CppOP_SeparatorBegin];
 
 			// ( かつひとつ前が識別子の場合は関数呼び出しとする
@@ -274,7 +343,7 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 	}
 
 	// 実引数リスト解析処理が , 演算子の解析を兼ねられるように、リスト終端にダミーの GroupEnd を入れておく
-	RPNTokenT tailToken;
+	RPNToken tailToken;
 	tailToken.Type = RPN_TT_OP_GroupEnd;
 	m_tokenList->Add(tailToken);
 }
@@ -282,13 +351,12 @@ void RPNParser<TChar>::TokenizeCppConst(Position exprBegin, Position exprEnd)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-template<typename TChar>
-void RPNParser<TChar>::Parse()
+void RPNParser::Parse()
 {
 	m_tmpRPNTokenList.Reserve(m_tokenList->GetCount());
-	m_lastToken = NULL;
+	m_lastToken = nullptr;
 
-	LN_FOREACH(RPNTokenT& token, *m_tokenList)
+	for (RPNToken& token : *m_tokenList)
 	{
 		// 現在の () 深さを振っておく
 		token.GroupLevel = m_groupStack.GetCount();
@@ -323,7 +391,7 @@ void RPNParser<TChar>::Parse()
 				break;
 			case RPN_TT_OP_CondFalse:
 			{
-				RPNTokenT* condTrue = PopOpStackCondFalse();
+				RPNToken* condTrue = PopOpStackCondFalse();
 				if (!condTrue) { return; }		// Error : ':' に対応する ? が見つからなかった
 				m_tmpRPNTokenList.Add(&token);
 				m_condStack.Push(&token);
@@ -358,7 +426,7 @@ void RPNParser<TChar>::Parse()
 	// 演算子用スタックに残っている要素を全て出力リストに移す
 	while (!m_opStack.IsEmpty())
 	{
-		RPNTokenT* top;
+		RPNToken* top;
 		m_opStack.Pop(&top);
 		if (top->Type == RPN_TT_OP_GroupStart) {
 			//TODO: error括弧が閉じていない
@@ -372,9 +440,9 @@ void RPNParser<TChar>::Parse()
 	}
 
 	// 出力用のリストへ、トークンのコピーを作成しつつ移す
-	m_rpnTokenList.Attach(LN_NEW RPNTokenListT());
+	m_rpnTokenList.Attach(LN_NEW RPNTokenList());
 	m_rpnTokenList->Reserve(m_tmpRPNTokenList.GetCount());
-	LN_FOREACH(RPNTokenT* token, m_tmpRPNTokenList)
+	for (RPNToken* token : m_tmpRPNTokenList)
 	{
 		m_rpnTokenList->Add(*token);
 	}
@@ -383,8 +451,7 @@ void RPNParser<TChar>::Parse()
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-template<typename TChar>
-void RPNParser<TChar>::PushOpStack(RPNTokenT* token)	// Operator または CondTrue だけ PushOpStack される
+void RPNParser::PushOpStack(RPNToken* token)	// Operator または CondTrue だけ PushOpStack される
 {
 	// スタックにあるものを取り除く作業。
 	// これから入れようとしているものより、top の優先度の方が高ければ取り除く。
@@ -392,7 +459,7 @@ void RPNParser<TChar>::PushOpStack(RPNTokenT* token)	// Operator または CondTrue
 	// スタックには優先度の低いものが残り続けることになる。
 	while (!m_opStack.IsEmpty())
 	{
-		RPNTokenT* top = m_opStack.GetTop();
+		RPNToken* top = m_opStack.GetTop();
 		if (top->Type == RPN_TT_OP_GroupStart || top->Type == RPN_TT_OP_FuncCall) {
 			// '(' は特別扱い。とにかく演算子スタックの先頭に積む。(演算子の優先度でどうこうできない)
 			// 別途、')' が見つかったとき、対応する '(' までのスタック要素を全てを出力リストへ移す。
@@ -415,11 +482,10 @@ void RPNParser<TChar>::PushOpStack(RPNTokenT* token)	// Operator または CondTrue
 //-----------------------------------------------------------------------------
 // GroupEnd (')') または , が見つかったら呼ばれる
 //-----------------------------------------------------------------------------
-template<typename TChar>
-RPNToken<TChar>* RPNParser<TChar>::PopOpStackGroupEnd(bool fromArgsSeparator)
+RPNToken* RPNParser::PopOpStackGroupEnd(bool fromArgsSeparator)
 {
 	// 対応する GroupStart ('(') が見つかるまでスタックの演算子を出力リストへ移していく。
-	RPNTokenT* top = NULL;
+	RPNToken* top = NULL;
 	while (!m_opStack.IsEmpty())
 	{
 		top = m_opStack.GetTop();
@@ -443,13 +509,13 @@ RPNToken<TChar>* RPNParser<TChar>::PopOpStackGroupEnd(bool fromArgsSeparator)
 		// 出力リストへ
 		m_tmpRPNTokenList.Add(top);
 		m_opStack.Pop();
-		top = NULL;
+		top = nullptr;
 	}
 
 	if (!top) {
 		// TODO: error 必ず GroupStart が無ければならない
 		// ↑×。最後にも1度呼ばれるためエラーにしてはいけない
-		return NULL;
+		return nullptr;
 	}
 	return top;
 }
@@ -457,11 +523,10 @@ RPNToken<TChar>* RPNParser<TChar>::PopOpStackGroupEnd(bool fromArgsSeparator)
 //-----------------------------------------------------------------------------
 // CondFalse (':') が見つかったら呼ばれる
 //-----------------------------------------------------------------------------
-template<typename TChar>
-RPNToken<TChar>* RPNParser<TChar>::PopOpStackCondFalse()
+RPNToken* RPNParser::PopOpStackCondFalse()
 {
 	// 対応する CondStart ('?') が見つかるまでスタックの演算子を出力リストへ移していく。
-	RPNTokenT* top = NULL;
+	RPNToken* top = nullptr;
 	while (!m_opStack.IsEmpty())
 	{
 		top = m_opStack.GetTop();
@@ -482,7 +547,7 @@ RPNToken<TChar>* RPNParser<TChar>::PopOpStackCondFalse()
 
 	if (!top) {
 		// TODO: error 必ず CondTrue が無ければならない
-		return NULL;
+		return nullptr;
 	}
 	return top;
 }
@@ -490,13 +555,12 @@ RPNToken<TChar>* RPNParser<TChar>::PopOpStackCondFalse()
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-template<typename TChar>
-void RPNParser<TChar>::CloseGroup(bool fromArgsSeparator)
+void RPNParser::CloseGroup(bool fromArgsSeparator)
 {
 	// 現在の () レベルの ':' 全てに CondGoto を振り、スタックから取り除く
 	while (!m_condStack.IsEmpty())
 	{
-		RPNTokenT* condFalse = m_condStack.GetTop();
+		RPNToken* condFalse = m_condStack.GetTop();
 		if (condFalse->GroupLevel < m_groupStack.GetCount()) {
 			break;
 		}
@@ -510,10 +574,79 @@ void RPNParser<TChar>::CloseGroup(bool fromArgsSeparator)
 	}
 }
 
-// テンプレートのインスタンス化
-template class RPNParser<char>;
-template class RPNParser<wchar_t>;
 
-} // namespace Parser
+//=============================================================================
+// RpnEvaluator
+//=============================================================================
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+bool RpnEvaluator::TryEval(const RPNTokenList* tokenList, DiagnosticsItemSet* diag, RpnOperand* outValue)
+{
+	LN_CHECK_ARGS_RETURNV(tokenList != nullptr, false);
+	LN_CHECK_ARGS_RETURNV(diag != nullptr, false);
+	m_diag = diag;
+
+	Stack<RpnOperand> operandStack;
+	RpnOperand operand;
+	for (int iToken = 0; iToken < tokenList->GetCount(); ++iToken)
+	{
+		const RPNToken& token = tokenList->GetAt(iToken);
+		switch (token.GetTokenGroup())
+		{
+		case RpnTokenGroup::Literal:
+			if (!MakeOperand(token, &operand)) return false;
+			break;
+		case RpnTokenGroup::Constant:
+		case RpnTokenGroup::Identifier:
+		case RpnTokenGroup::Operator:
+		case RpnTokenGroup::CondTrue:
+		case RpnTokenGroup::CondFalse:
+		case RpnTokenGroup::Function:
+		case RpnTokenGroup::Assignment:
+			break;
+		default:
+			m_diag->Report(DiagnosticsCode::RpnEvaluator_UnexpectedToken);
+			break;
+		}
+
+		operandStack.Push(operand);
+	}
+
+	// 全てのトークンを読み終えると、スタックに1つだけ結果が出ている
+	if (operandStack.GetCount() != 1)
+	{
+		m_diag->Report(DiagnosticsCode::RpnEvaluator_InsufficientToken);
+		return false;
+	}
+	*outValue = operandStack.GetTop();
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+bool RpnEvaluator::MakeOperand(const RPNToken& token, RpnOperand* outOperand)
+{
+	if (token.Type == RPN_TT_NumericLiteral)
+	{
+		outOperand->type = RpnOperandType::Double;
+
+		NumberConversionResult r;
+		outOperand->valueDouble = StringTraits::ToDouble(token.SourceToken->GetBegin(), token.SourceToken->GetLength(), (const char**)NULL, &r);
+
+		if (r == NumberConversionResult::Success)
+		{
+			return true;
+		}
+	}
+
+	// Error: 数値にできなかった
+	m_diag->Report(DiagnosticsCode::RpnEvaluator_InvalidNumericLiteral);
+	return false;
+}
+
+
+} // namespace parser
 LN_NAMESPACE_END
-#endif

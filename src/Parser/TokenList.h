@@ -11,19 +11,24 @@ namespace parser
 */
 class TokenList
 	: public RefObject
+	, public Collection<Token>
 {
+//public:
+//	typedef Collection<Token>::iterator iterator;
+//	typedef Collection<Token>::const_iterator const_iterator;
+
 public:
 	TokenList() {}
 	~TokenList() {}
 
-	void Reserve(size_t size) { m_list.Reserve(size); }
-	void Resize(size_t size) { m_list.Resize(size); }
-	void Add(const Token& token) { m_list.Add(token); }
-	Token& GetAt(int index) { return m_list.GetAt(index); }
-	int GetCount() const { return m_list.GetCount(); }
-
-private:
-	Array<Token>	m_list;
+//	void Reserve(size_t size) { m_list.Reserve(size); }
+//	void Resize(size_t size) { m_list.Resize(size); }
+//	void Add(const Token& token) { m_list.Add(token); }
+//	Token& GetAt(int index) { return m_list.GetAt(index); }
+//	int GetCount() const { return m_list.GetCount(); }
+//
+//private:
+//	Array<Token>	m_list;
 };
 
 } // namespace Parser

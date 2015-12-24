@@ -15,6 +15,13 @@ enum class DiagnosticsCode
 	CppLexerGroup = 0x00010000,
 	//CppLexer_InvalidToken = Severity_Error | CppLexerGroup | 0x0001,
 	UnexpectedEOFInBlockComment = Severity_Error | CppLexerGroup | 0x0001,
+
+
+	RpnEvaluatorGroup = 0x00020000,
+	RpnEvaluator_InvalidNumericLiteral	= Severity_Error | RpnEvaluatorGroup | 1,
+	RpnEvaluator_UnexpectedToken		= Severity_Error | RpnEvaluatorGroup | 2,	/**< 予期しないトークンが見つかった。*/
+	RpnEvaluator_InsufficientToken		= Severity_Error | RpnEvaluatorGroup | 3,	/**< 式を評価するためのトークンが不足している。(式が完結していない) */
+
 };
 
 enum class SeverityLevel

@@ -415,7 +415,7 @@ int CppLexer::ReadIdentifier(const Range& buffer, Token* outToken)
 	}
 
 	// ÉgÅ[ÉNÉìçÏê¨
-	*outToken = Token(CommonTokenType::Unknown, buffer.pos, r.pos);
+	*outToken = Token(CommonTokenType::Identifier, buffer.pos, r.pos);
 	return r.pos - buffer.pos;
 }
 

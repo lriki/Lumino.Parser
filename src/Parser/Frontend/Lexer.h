@@ -20,7 +20,7 @@ public:
 	};
 
 public:
-	TokenListPtr Tokenize(const char* str, DiagnosticsItemSet* diag);
+	TokenListPtr Tokenize(const char* str, DiagnosticsItemSet* diag);	// TODO: ‚±‚ê‚¾‚Æo—ˆã‚ª‚Á‚½ Token ‚ªw‚µ‚Ä‚¢‚é•¶š—ñ‚ª‰ó‚ê‚Ä‚µ‚Ü‚¤
 	TokenListPtr Tokenize(const ByteBuffer& buffer, DiagnosticsItemSet* diag);
 
 	virtual int ReadToken(const Range& buffer, TokenList* list) = 0;

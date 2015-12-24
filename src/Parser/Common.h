@@ -29,6 +29,7 @@ LN_ENUM(CommonTokenType)
 	Unknown = 0,			/** 共通種別としては分類されない */
 	SpaceSequence,			/** 空白並び */
 	NewLine,				/** 改行 ("\r" "\n" "\r\n" のいずれか。並びではない。"\r\n\r\n" は2つの NewLine トークンとなる) */
+	Identifier,				/** 識別子 */
 	Keyword,				/** キーワード */
 	Operator,				/** 演算子 */
 	ArithmeticLiteral,		/** 算術型リテラル (整数、小数。C言語の char も算術型) */

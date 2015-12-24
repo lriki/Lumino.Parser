@@ -38,6 +38,7 @@ public:
 	int GetLangTokenType() const { return m_langTokenType; }
 	const TokenChar* GetBegin() const { return m_begin; }
 	const TokenChar* GetEnd() const { return m_end; }
+	int GetLength() const { return m_end - m_begin; }
 
 private:
 	CommonTokenType		m_commonType = CommonTokenType::Unknown;

@@ -1,15 +1,14 @@
 
 #pragma once
-
 #include <Lumino/Base/Stack.h>
 #include <Lumino/IO/PathName.h>
-#include "../ParserObject.h"
+#include "Common.h"
+#include "Token.h"
+#include "TokenList.h"
 
 LN_NAMESPACE_BEGIN
-namespace Parser
+namespace parser
 {
-class ErrorManager;
-
 enum RPNTokenType
 {
 	RPN_TT_Unknown = 0,
@@ -62,10 +61,33 @@ enum RPNTokenType
 
 	RPN_TT_OP_FuncCall,				///< 関数呼び出し (識別子部分を指す)
 
-	//RPN_TT_OP_Negation,
-	//RPN_TT_OP_Exponent,			// **
 
 	RPN_TT_Max,	
+};
+
+enum class RpnTokenGroup
+{
+	Unknown,
+	Literal,
+	Constant,
+	Identifier,
+	Operator,
+	CondTrue,
+	CondFalse,
+	Function,
+	Assignment,
+};
+
+/** 演算子のグループ (エラー処理などが共通) */
+enum class RpnOperatorGroup
+{
+	Unknown,
+	Arithmetic,
+	Comparison,
+	Logical,
+	Bitwise,
+	Conditional,
+	Assignment,
 };
 
 /// 演算子の結合方向
@@ -78,7 +100,6 @@ enum OpeatorAssociation
 /**
 	@brief	逆ポーランド式を構成する要素です。
 */
-template<typename TChar>
 class RPNToken
 {
 public:
@@ -92,13 +113,14 @@ public:
 public:
 	bool IsOperator() const { return RPN_TT_OP_GroupStart <= Type && Type <= RPN_TT_OP_FuncCall; }
 
-	
+	RpnTokenGroup GetTokenGroup() const;
+	RpnOperatorGroup GetOperatorGroup() const;
 
 public:
 	RPNTokenType		Type;
 	int					Precedence;		///< 優先順位
 	OpeatorAssociation	Association;	///< 結合方向
-	const Token<TChar>*	SourceToken;
+	const Token*		SourceToken;
 	int					GroupLevel;		///< () ネストの深さ。ルートは 0
 
 	int					CondGoto;		///< (Type が CondTrue または CondFalse のときに使用する)
@@ -107,37 +129,78 @@ public:
 
 };
 
-template<typename TChar>
+class RPNTokenList
+	: public RefObject
+	, public Collection<RPNToken>
+{
+};
+
 class RPNParser
-	: public ParserObject<TChar>
 {
 public:
-	typename typedef RPNToken<TChar>		RPNTokenT;
-	typename typedef Array<RPNTokenT>	RPNTokenListT;
+	typedef Collection<Token>::const_iterator Position;
 
 public:
-	static Array< RPNToken<TChar> >* ParseCppConstExpression(Position exprBegin, Position exprEnd, ErrorManager* errorInfo);
+	// TODO: RefPtr
+	static RefPtr<RPNTokenList> ParseCppConstExpression(Position exprBegin, Position exprEnd, DiagnosticsItemSet* diag);
 
 private:
 	void TokenizeCppConst(Position exprBegin, Position exprEnd);
 	void Parse();
-	void PushOpStack(RPNTokenT* token);
-	RPNToken<TChar>* PopOpStackGroupEnd(bool fromArgsSeparator);
-	RPNToken<TChar>* PopOpStackCondFalse();
+	void PushOpStack(RPNToken* token);
+	RPNToken* PopOpStackGroupEnd(bool fromArgsSeparator);
+	RPNToken* PopOpStackCondFalse();
 	void CloseGroup(bool fromArgsSeparator);
 
 private:
+	RefPtr<RPNTokenList>	m_tokenList;
+	RefPtr<RPNTokenList>	m_rpnTokenList;
 
-	RefPtr<RPNTokenListT>	m_tokenList;
-	RefPtr<RPNTokenListT>	m_rpnTokenList;
-
-	//RefPtr<RPNTokenListT>	m_rpnTokenList;
-	Array<RPNTokenT*>		m_tmpRPNTokenList;
-	Stack<RPNTokenT*>		m_opStack;			///< 演算子用の作業スタック
-	Stack<RPNTokenT*>		m_condStack;		///< 条件演算子用の作業スタック。: を格納していく
-	Stack<RPNTokenT*>		m_groupStack;		///< () の作業スタック。( または FuncCall を格納していく
-	RPNTokenT*				m_lastToken;
+	Array<RPNToken*>		m_tmpRPNTokenList;
+	Stack<RPNToken*>		m_opStack;			// 演算子用の作業スタック
+	Stack<RPNToken*>		m_condStack;		// 条件演算子用の作業スタック。: を格納していく
+	Stack<RPNToken*>		m_groupStack;		// () の作業スタック。( または FuncCall を格納していく
+	RPNToken*				m_lastToken;
 };
 
-} // namespace Parser
+
+
+
+
+enum class RpnOperandType
+{
+	Double,
+};
+
+
+class RpnOperand
+{
+public:
+	RpnOperandType	type;
+
+	union
+	{
+		double	valueDouble;
+	};
+
+	//RpnOperand(const RPNToken& rpnToken)
+	//{
+	//	if (rpnToken.Type == RPN_TT_NumericLiteral)
+	//	
+	//}
+};
+
+class RpnEvaluator
+{
+public:
+	bool TryEval(const RPNTokenList* tokenList, DiagnosticsItemSet* diag, RpnOperand* outValue);
+
+private:
+	bool MakeOperand(const RPNToken& token, RpnOperand* outOperand);
+
+private:
+	DiagnosticsItemSet*	m_diag;
+};
+
+} // namespace parser
 LN_NAMESPACE_END

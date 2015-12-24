@@ -10,10 +10,10 @@ protected:
 //-----------------------------------------------------------------------------
 TEST_F(Test_Parser_CppLexer, Basic)
 {
-	DiagnosticsItemSet daig;
+	DiagnosticsItemSet diag;
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize(" ", &daig);
+		auto tokens = lex.Tokenize(" ", &diag);
 		ASSERT_EQ(2, tokens->GetCount());
 		ASSERT_EQ(CommonTokenType::SpaceSequence, tokens->GetAt(0).GetCommonType());
 		ASSERT_EQ(CommonTokenType::Eof, tokens->GetAt(1).GetCommonType());
@@ -21,7 +21,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	// <Test> 改行
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("\n\r\r\n", &daig);
+		auto tokens = lex.Tokenize("\n\r\r\n", &diag);
 		ASSERT_EQ(4, tokens->GetCount());
 		ASSERT_EQ(CommonTokenType::NewLine, tokens->GetAt(0).GetCommonType());
 		ASSERT_EQ(CommonTokenType::NewLine, tokens->GetAt(1).GetCommonType());
@@ -29,7 +29,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	}
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("5 0x5 5.0 5.", &daig);
+		auto tokens = lex.Tokenize("5 0x5 5.0 5.", &diag);
 		ASSERT_EQ(8, tokens->GetCount());
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(0).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_Int32, tokens->GetAt(0).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(2).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_Int32, tokens->GetAt(2).GetLangTokenType());
@@ -39,7 +39,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	// <Test> 整数サフィックスの確認
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("5u 5U    5l 5L    5ul 5Ul 5uL 5UL    5ll 5LL    5ull 5Ull 5uLL 5uLL", &daig);
+		auto tokens = lex.Tokenize("5u 5U    5l 5L    5ul 5Ul 5uL 5UL    5ll 5LL    5ull 5Ull 5uLL 5uLL", &diag);
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(0).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_UInt32, tokens->GetAt(0).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(2).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_UInt32, tokens->GetAt(2).GetLangTokenType());
 
@@ -62,7 +62,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	// <Test> 実数サフィックスの確認
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("5f 5.F 5d 5.D", &daig);
+		auto tokens = lex.Tokenize("5f 5.F 5d 5.D", &diag);
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(0).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_Float, tokens->GetAt(0).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(2).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_Float, tokens->GetAt(2).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(4).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_Double, tokens->GetAt(4).GetLangTokenType());
@@ -71,7 +71,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	// <Test> 指数表記
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("5e+03 5e+03F 5.e+03 5.0e+03", &daig);
+		auto tokens = lex.Tokenize("5e+03 5e+03F 5.e+03 5.0e+03", &diag);
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(0).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_Double, tokens->GetAt(0).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(2).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_Float, tokens->GetAt(2).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(4).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_Double, tokens->GetAt(4).GetLangTokenType());
@@ -80,7 +80,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	// <Test> 文字リテラル
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("'a' '\\'' L'\\n'", &daig);
+		auto tokens = lex.Tokenize("'a' '\\'' L'\\n'", &diag);
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(0).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_Char, tokens->GetAt(0).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(2).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_Char, tokens->GetAt(2).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, tokens->GetAt(4).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_WideChar, tokens->GetAt(4).GetLangTokenType());
@@ -89,7 +89,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	// <Test> 文字列リテラル
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("\"a\" \"\\\"\" L\"\"", &daig);
+		auto tokens = lex.Tokenize("\"a\" \"\\\"\" L\"\"", &diag);
 		ASSERT_EQ(CommonTokenType::StringLiteral, tokens->GetAt(0).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_AsciiString, tokens->GetAt(0).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::StringLiteral, tokens->GetAt(2).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_AsciiString, tokens->GetAt(2).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::StringLiteral, tokens->GetAt(4).GetCommonType()); ASSERT_EQ(TT_NumericLitaralType_WideString, tokens->GetAt(4).GetLangTokenType());
@@ -97,7 +97,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	// <Test> ブロックコメント
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("/*a*//**/", &daig);
+		auto tokens = lex.Tokenize("/*a*//**/", &diag);
 		ASSERT_EQ(CommonTokenType::Comment, tokens->GetAt(0).GetCommonType());
 		ASSERT_EQ(CommonTokenType::Comment, tokens->GetAt(1).GetCommonType());
 		ASSERT_EQ(CommonTokenType::Eof, tokens->GetAt(2).GetCommonType());
@@ -105,13 +105,13 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	// <Illigal> ブロックコメントの途中でEOF
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("/*", &daig);
-		ASSERT_EQ(DiagnosticsCode::UnexpectedEOFInBlockComment, daig.GetItems()->GetLast().GetCode());
+		auto tokens = lex.Tokenize("/*", &diag);
+		ASSERT_EQ(DiagnosticsCode::UnexpectedEOFInBlockComment, diag.GetItems()->GetLast().GetCode());
 	}
 	// <Test> 行コメント
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("//\r\n//a\\\na", &daig);
+		auto tokens = lex.Tokenize("//\r\n//a\\\na", &diag);
 		ASSERT_EQ(CommonTokenType::Comment, tokens->GetAt(0).GetCommonType());
 		ASSERT_EQ(CommonTokenType::NewLine, tokens->GetAt(1).GetCommonType());	// \r\n
 		ASSERT_EQ(CommonTokenType::Comment, tokens->GetAt(2).GetCommonType());	// \ が行の終端にあるのでひと続き
@@ -120,7 +120,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	// <Test> 演算子
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("/ /+++++", &daig);
+		auto tokens = lex.Tokenize("/ /+++++", &diag);
 		ASSERT_EQ(CommonTokenType::Operator, tokens->GetAt(0).GetCommonType());
 		ASSERT_EQ(CommonTokenType::SpaceSequence, tokens->GetAt(1).GetCommonType());
 		ASSERT_EQ(CommonTokenType::Operator, tokens->GetAt(2).GetCommonType());
@@ -132,7 +132,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	// <Test> 行末エスケープ
 	{
 		CppLexer lex;
-		auto tokens = lex.Tokenize("\\\n", &daig);
+		auto tokens = lex.Tokenize("\\\n", &diag);
 		ASSERT_EQ(CommonTokenType::Unknown, tokens->GetAt(0).GetCommonType()); ASSERT_EQ(TT_EscapeNewLine, tokens->GetAt(0).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::Eof, tokens->GetAt(1).GetCommonType());
 	}
@@ -140,7 +140,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	{
 		byte_t buf[] = { 0xE6, 0x95, 0xB0, 0x20, 0xE6, 0x95, 0xB0, 0x00 };
 		CppLexer lex;
-		auto tokens = lex.Tokenize((const char*)buf, &daig);
+		auto tokens = lex.Tokenize((const char*)buf, &diag);
 		ASSERT_EQ(CommonTokenType::MbsSequence, tokens->GetAt(0).GetCommonType());
 		ASSERT_EQ(CommonTokenType::SpaceSequence, tokens->GetAt(1).GetCommonType());
 		ASSERT_EQ(CommonTokenType::MbsSequence, tokens->GetAt(2).GetCommonType());
@@ -158,11 +158,11 @@ TEST_F(Test_Parser_CppLexer, Basic)
 //-----------------------------------------------------------------------------
 TEST_F(Test_Parser_CppLexer, Illigal)
 {
-	DiagnosticsItemSet daig;
+	DiagnosticsItemSet diag;
 	//// <Test> 無効な数値リテラルサフィックス
 	//{
 	//	CppLexer lex;
-	//	auto tokens = lex.Tokenize("5a", &daig);
+	//	auto tokens = lex.Tokenize("5a", &diag);
 	//}
 
 
