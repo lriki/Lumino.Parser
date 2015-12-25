@@ -80,427 +80,149 @@ namespace parser
 
 	
 */
-#if 0
+
 // http://en.cppreference.com/w/cpp/language/expressions
 // http://en.cppreference.com/w/cpp/language/operator_logical
-template<typename T>
 struct RpnOperator
 {
-	static T UnaryPlus(T /*lhs*/, T rhs) { return rhs; }
-	static T UnaryMinus(T /*lhs*/, T rhs) { return -rhs; }
+	template<typename T> static void UnaryPlus(T /*lhs*/, T rhs, RpnOperand* out) { out->Set(rhs); }
+	template<typename T> static void UnaryMinus(T /*lhs*/, T rhs, RpnOperand* out) { out->Set(-rhs); }
+	template<> static void UnaryMinus<uint32_t>(uint32_t /*lhs*/, uint32_t rhs, RpnOperand* out) { out->Set((uint32_t)-((int32_t)rhs)); }	// 警告回避
+	template<> static void UnaryMinus<uint64_t>(uint64_t /*lhs*/, uint64_t rhs, RpnOperand* out) { out->Set((uint64_t)-((int64_t)rhs)); }	// 警告回避
 
-	static T Multiply(T lhs, T rhs) { return lhs * rhs; }
-	static T Divide(T lhs, T rhs) { return lhs / rhs; }
-	static T Modulus(T lhs, T rhs) { return lhs % rhs; }
-	static T BinaryPlus(T lhs, T rhs) { return lhs + rhs; }
-	static T BinaryMinus(T lhs, T rhs) { return lhs - rhs; }
+	template<typename T> static void Multiply(T lhs, T rhs, RpnOperand* out)	{ out->Set(lhs * rhs); }
+	template<typename T> static void Divide(T lhs, T rhs, RpnOperand* out)		{ out->Set(lhs / rhs); }
+	template<typename T> static void Modulus(T lhs, T rhs, RpnOperand* out)		{ out->Set(lhs % rhs); }
+	template<typename T> static void BinaryPlus(T lhs, T rhs, RpnOperand* out)	{ out->Set(lhs + rhs); }
+	template<typename T> static void BinaryMinus(T lhs, T rhs, RpnOperand* out) { out->Set(lhs - rhs); }
 
-	static T LeftShift(T lhs, T rhs) { return lhs << rhs; }
-	static T RightShift(T lhs, T rhs) { return lhs >> rhs; }
+	template<typename T> static void LeftShift(T lhs, T rhs, RpnOperand* out)	{ out->Set(lhs << rhs); }
+	template<typename T> static void RightShift(T lhs, T rhs, RpnOperand* out)	{ out->Set(lhs >> rhs); }
 
-	static bool CompLessThan(T lhs, T rhs) { return lhs < rhs; }
-	static bool CompLessThanEqual(T lhs, T rhs) { return lhs <= rhs; }
-	static bool CompGreaterThen(T lhs, T rhs) { return lhs > rhs; }
-	static bool CompGreaterThenEqual(T lhs, T rhs) { return lhs >= rhs; }
-	static bool CompEqual(T lhs, T rhs) { return lhs == rhs; }
-	static bool CompNotEqual(T lhs, T rhs) { return lhs != rhs; }
+	template<typename T> static void CompLessThan(T lhs, T rhs, RpnOperand* out)			{ out->Set(lhs < rhs); }
+	template<typename T> static void CompLessThanEqual(T lhs, T rhs, RpnOperand* out)		{ out->Set(lhs <= rhs); }
+	template<typename T> static void CompGreaterThen(T lhs, T rhs, RpnOperand* out)			{ out->Set(lhs > rhs); }
+	template<typename T> static void CompGreaterThenEqual(T lhs, T rhs, RpnOperand* out)	{ out->Set(lhs >= rhs); }
+	template<typename T> static void CompEqual(T lhs, T rhs, RpnOperand* out)				{ out->Set(lhs == rhs); }
+	template<typename T> static void CompNotEqual(T lhs, T rhs, RpnOperand* out)			{ out->Set(lhs != rhs); }
 
-	static bool CompLessThan_Boolean(T lhs, T rhs) { return lhs < rhs; }
-	static bool CompLessThanEqual_Boolean(T lhs, T rhs) { return lhs <= rhs; }
-	static bool CompGreaterThen_Boolean(T lhs, T rhs) { return lhs > rhs; }
-	static bool CompGreaterThenEqual_Boolean(T lhs, T rhs) { return lhs >= rhs; }
-	static bool CompEqual_Boolean(T lhs, T rhs) { return lhs == rhs; }
-	static bool CompNotEqual_Boolean(T lhs, T rhs) { return lhs != rhs; }
+	template<typename T> static void BitwiseNot(T /*lhs*/, T rhs, RpnOperand* out)	{ out->Set(~rhs); }
+	template<typename T> static void BitwiseAnd(T lhs, T rhs, RpnOperand* out)		{ out->Set(lhs & rhs); }
+	template<typename T> static void BitwiseXor(T lhs, T rhs, RpnOperand* out)		{ out->Set(lhs ^ rhs); }
+	template<typename T> static void BitwiseOr(T lhs, T rhs, RpnOperand* out)		{ out->Set(lhs | rhs); }
 
-
-	static T BitwiseNot(T /*lhs*/, T rhs) { return ~rhs; }
-	static T BitwiseAnd(T lhs, T rhs) { return lhs & rhs; }
-	static T BitwiseXor(T lhs, T rhs) { return lhs ^ rhs; }
-	static T BitwiseOr(T lhs, T rhs) { return lhs | rhs; }
-
-	static bool LogicalNot(T /*lhs*/, T rhs) { return !(rhs != 0); }
-	static bool LogicalAnd(T lhs, T rhs) { return (lhs != 0) && (rhs != 0); }
-	static bool LogicalOr(T lhs, T rhs) { return (lhs != 0) || (rhs != 0); }
-
-	static bool LogicalNot_Boolean(bool /*lhs*/, bool rhs) { return !rhs; }
-	static bool LogicalAnd_Boolean(bool lhs, bool rhs) { return lhs && rhs; }
-	static bool LogicalOr_Boolean(bool lhs, bool rhs) { return lhs || rhs; }
+	template<typename T> static void LogicalNot(T /*lhs*/, T rhs, RpnOperand* out)		{ out->Set(!(rhs != 0)); }
+	template<typename T> static void LogicalAnd(T lhs, T rhs, RpnOperand* out)			{ out->Set((lhs != 0) && (rhs != 0)); }
+	template<typename T> static void LogicalOr(T lhs, T rhs, RpnOperand* out)			{ out->Set((lhs != 0) || (rhs != 0)); }
+	template<> static void LogicalNot<bool>(bool /*lhs*/, bool rhs, RpnOperand* out)	{ out->Set(!rhs); }
+	template<> static void LogicalAnd<bool>(bool lhs, bool rhs, RpnOperand* out)		{ out->Set(lhs && rhs); }
+	template<> static void LogicalOr<bool>(bool lhs, bool rhs, RpnOperand* out)			{ out->Set(lhs || rhs); }
 };
 
+typedef void(*NullOperator)(nullptr_t lhs, nullptr_t rhs, RpnOperand* out);
+typedef void(*BooleanOperator)(bool lhs, bool rhs, RpnOperand* out);
+typedef void(*Int32Operator)(int32_t lhs, int32_t rhs, RpnOperand* out);
+typedef void(*UInt32Operator)(uint32_t lhs, uint32_t rhs, RpnOperand* out);
+typedef void(*Int64Operator)(int64_t lhs, int64_t rhs, RpnOperand* out);
+typedef void(*UInt64Operator)(uint64_t lhs, uint64_t rhs, RpnOperand* out);
+typedef void(*FloatOperator)(float lhs, float rhs, RpnOperand* out);
+typedef void(*DoubleOperator)(double lhs, double rhs, RpnOperand* out);
 
+struct RpnTypedOperatorTableItem
+{
+	NullOperator	operaotrNullptr;
+	BooleanOperator	operaotrBoolean;
+	Int32Operator	operaotrInt32;
+	UInt32Operator	operaotrUInt32;
+	Int64Operator	operaotrInt64;
+	UInt64Operator	operaotrUInt64;
+	FloatOperator	operaotrFloat;
+	DoubleOperator	operaotrDouble;
+};
+
+#define LN_RPN_OPERATOR_DEFINE_NONE \
+	{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, }
+
+#define LN_RPN_OPERATOR_DEFINE(op) \
+	{ nullptr, nullptr, RpnOperator::op<int32_t>, RpnOperator::op<uint32_t>, RpnOperator::op<int64_t>, RpnOperator::op<uint64_t>, RpnOperator::op<float>, RpnOperator::op<double>, }
+
+#define LN_RPN_OPERATOR_DEFINE_INTEGER(op) \
+	{ nullptr, nullptr, RpnOperator::op<int32_t>, RpnOperator::op<uint32_t>, RpnOperator::op<int64_t>, RpnOperator::op<uint64_t>, nullptr, nullptr, }
+
+#define LN_RPN_OPERATOR_DEFINE_LOGICAL(op) \
+	{ nullptr, RpnOperator::op<bool>, RpnOperator::op<int32_t>, RpnOperator::op<uint32_t>, RpnOperator::op<int64_t>, RpnOperator::op<uint64_t>, RpnOperator::op<float>, RpnOperator::op<double>, }
 
 struct TokenTypeTableItem
 {
 	RpnTokenGroup		tokenGroup;
 	RpnOperatorGroup	operatorGroup;
 	bool				isUnary;
+	RpnTypedOperatorTableItem	eval;
 };
 static TokenTypeTableItem g_tokenTypeTable[] = 
 {
-	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_Unknown = 0,
-	{ RpnTokenGroup::Identifier,	RpnOperatorGroup::Unknown,		false },		// RPN_TT_Identifier,				///< 識別子
-	//{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLiteral,			///< 数値リテラル
-	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_OP_GroupStart,			// (	※ 括弧はパースで取り除かれるので Unknown
-	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_OP_GroupEnd,				// )	※ 括弧はパースで取り除かれるので Unknown
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	true },			// RPN_TT_OP_UnaryPlus,			// + (Unary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	true },			// RPN_TT_OP_UnaryMinus,			// - (Unary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false },		// RPN_TT_OP_Multiply,				// *
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false },		// RPN_TT_OP_Divide,				// /
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false },		// RPN_TT_OP_Modulus,				// %
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false },		// RPN_TT_OP_BinaryPlus,			// + (Binary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false },		// RPN_TT_OP_BinaryMinus,			// - (Binary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false },		// RPN_TT_OP_LeftShift,			// <<
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false },		// RPN_TT_OP_RightShift,			// >>
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompLessThan,			// <
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompLessThanEqual,	// <=
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompGreaterThen,		// >
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompGreaterThenEqual,	// >=
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompEqual,			// ==
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompNotEqual,			// !=
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		true },			// RPN_TT_OP_BitwiseNot,			// ~ (Unary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false },		// RPN_TT_OP_BitwiseAnd,			// &
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false },		// RPN_TT_OP_BitwiseXor,			// ^
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false },		// RPN_TT_OP_BitwiseOr,			// |
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical,		true },			// RPN_TT_OP_LogicalNot,			// ! (Unary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical,		false },		// RPN_TT_OP_LogicalAnd,			// &&
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical,		false },		// RPN_TT_OP_LogicalOr,			// ||
-	{ RpnTokenGroup::CondTrue,		RpnOperatorGroup::Conditional,	false },		// RPN_TT_OP_CondTrue,				// ? (条件演算子)
-	{ RpnTokenGroup::CondFalse,		RpnOperatorGroup::Conditional,	false },		// RPN_TT_OP_CondFalse,			// : (条件演算子)
-	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_OP_Comma,				// , (カンマ演算子 or 実引数区切り文字)	※未対応
-	{ RpnTokenGroup::FunctionCall,	RpnOperatorGroup::Unknown,		false },		// RPN_TT_OP_FuncCall,				///< 関数呼び出し (識別子部分を指す)
+	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_Unknown = 0,
+	{ RpnTokenGroup::Identifier,	RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_Identifier,				///< 識別子
+	//{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLiteral,			///< 数値リテラル
+	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_OP_GroupStart,			// (	※ 括弧はパースで取り除かれるので Unknown
+	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_OP_GroupEnd,				// )	※ 括弧はパースで取り除かれるので Unknown
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	true,	LN_RPN_OPERATOR_DEFINE(UnaryPlus),},			// RPN_TT_OP_UnaryPlus,			// + (Unary)
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	true,	LN_RPN_OPERATOR_DEFINE(UnaryMinus), },			// RPN_TT_OP_UnaryMinus,			// - (Unary)
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false,	LN_RPN_OPERATOR_DEFINE(Multiply), },		// RPN_TT_OP_Multiply,				// *
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false,	LN_RPN_OPERATOR_DEFINE(Divide), },		// RPN_TT_OP_Divide,				// /
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false,	LN_RPN_OPERATOR_DEFINE_INTEGER(Modulus), },		// RPN_TT_OP_Modulus,				// %
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false,	LN_RPN_OPERATOR_DEFINE(BinaryPlus), },		// RPN_TT_OP_BinaryPlus,			// + (Binary)
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false,	LN_RPN_OPERATOR_DEFINE(BinaryMinus), },		// RPN_TT_OP_BinaryMinus,			// - (Binary)
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false,	LN_RPN_OPERATOR_DEFINE_INTEGER(LeftShift), },		// RPN_TT_OP_LeftShift,			// <<
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false,	LN_RPN_OPERATOR_DEFINE_INTEGER(RightShift), },		// RPN_TT_OP_RightShift,			// >>
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false,	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompLessThan), },		// RPN_TT_OP_CompLessThan,			// <
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false,	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompLessThanEqual), },		// RPN_TT_OP_CompLessThanEqual,	// <=
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false,	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompGreaterThen), },		// RPN_TT_OP_CompGreaterThen,		// >
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false,	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompGreaterThenEqual), },		// RPN_TT_OP_CompGreaterThenEqual,	// >=
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false,	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompEqual), },		// RPN_TT_OP_CompEqual,			// ==
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false,	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompNotEqual), },		// RPN_TT_OP_CompNotEqual,			// !=
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		true,	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseNot), },			// RPN_TT_OP_BitwiseNot,			// ~ (Unary)
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false,	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseAnd), },		// RPN_TT_OP_BitwiseAnd,			// &
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false,	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseXor), },		// RPN_TT_OP_BitwiseXor,			// ^
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false,	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseOr), },		// RPN_TT_OP_BitwiseOr,			// |
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical,		true,	LN_RPN_OPERATOR_DEFINE_LOGICAL(LogicalNot), },			// RPN_TT_OP_LogicalNot,			// ! (Unary)
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical,		false,	LN_RPN_OPERATOR_DEFINE_LOGICAL(LogicalAnd), },		// RPN_TT_OP_LogicalAnd,			// &&
+	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical,		false,	LN_RPN_OPERATOR_DEFINE_LOGICAL(LogicalOr), },		// RPN_TT_OP_LogicalOr,			// ||
+	{ RpnTokenGroup::CondTrue,		RpnOperatorGroup::Conditional,	false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_OP_CondTrue,				// ? (条件演算子)
+	{ RpnTokenGroup::CondFalse,		RpnOperatorGroup::Conditional,	false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_OP_CondFalse,			// : (条件演算子)
+	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_OP_Comma,				// , (カンマ演算子 or 実引数区切り文字)	※未対応
+	{ RpnTokenGroup::FunctionCall,	RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_OP_FuncCall,				///< 関数呼び出し (識別子部分を指す)
 	
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_Null,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_True,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_False,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_Int32,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_UInt32,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_Int64,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_UInt64,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_Float,	/**< 32bit */
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_Double,	/**< 64bit */
-};
-
-typedef nullptr_t(*NullOperator)(nullptr_t lhs, nullptr_t rhs);
-typedef bool(*BooleanOperator)(bool lhs, bool rhs);
-typedef int32_t(*Int32Operator)(int32_t lhs, int32_t rhs);
-typedef uint32_t(*UInt32Operator)(uint32_t lhs, uint32_t rhs);
-typedef int64_t(*Int64Operator)(int64_t lhs, int64_t rhs);
-typedef uint64_t(*UInt64Operator)(uint64_t lhs, uint64_t rhs);
-typedef float(*FloatOperator)(float lhs, float rhs);
-typedef double(*DoubleOperator)(double lhs, double rhs);
-
-typedef bool(*NullLogicalOperator)(nullptr_t lhs, nullptr_t rhs);
-typedef bool(*BooleanLogicalOperator)(bool lhs, bool rhs);
-typedef bool(*Int32LogicalOperator)(int32_t lhs, int32_t rhs);
-typedef bool(*UInt32LogicalOperator)(uint32_t lhs, uint32_t rhs);
-typedef bool(*Int64LogicalOperator)(int64_t lhs, int64_t rhs);
-typedef bool(*UInt64LogicalOperator)(uint64_t lhs, uint64_t rhs);
-typedef bool(*FloatLogicalOperator)(float lhs, float rhs);
-typedef bool(*DoubleLogicalOperator)(double lhs, double rhs);
-
-struct RpnTypedOperatorTableItem
-{
-	NullOperator	nullptrOperator;
-	BooleanOperator	booleanOperator;
-	Int32Operator	int32Operator;
-	UInt32Operator	uint32Operator;
-	Int64Operator	int64Operator;
-	UInt64Operator	uint64Operator;
-	FloatOperator	floatOperator;
-	DoubleOperator	doubleOperator;
-
-	NullLogicalOperator		nullptrLogicalOperator;
-	BooleanLogicalOperator	booleanLogicalOperator;
-	Int32LogicalOperator	int32LogicalOperator;
-	UInt32LogicalOperator	uint32LogicalOperator;
-	Int64LogicalOperator	int64LogicalOperator;
-	UInt64LogicalOperator	uint64LogicalOperator;
-	FloatLogicalOperator	floatLogicalOperator;
-	DoubleLogicalOperator	doubleLogicalOperator;
-};
-
-#define LN_RPN_OPERATOR_DEFINE_NONE \
-	{	nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, \
-		nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, }
-
-#define LN_RPN_OPERATOR_DEFINE(op) \
-	{	nullptr, RpnOperator<bool>::op, RpnOperator<int32_t>::op, RpnOperator<uint32_t>::op, RpnOperator<int64_t>::op, RpnOperator<uint64_t>::op, RpnOperator<float>::op, RpnOperator<double>::op, \
-		nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, }
-
-#define LN_RPN_OPERATOR_DEFINE_INTEGER(op) \
-	{	nullptr, RpnOperator<bool>::op, RpnOperator<int32_t>::op, RpnOperator<uint32_t>::op, RpnOperator<int64_t>::op, RpnOperator<uint64_t>::op, nullptr, nullptr, \
-		nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, }
-
-#define LN_RPN_OPERATOR_DEFINE_LOGICAL(op) \
-	{	nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, \
-		nullptr, RpnOperator<bool>::op##_Boolean, RpnOperator<int32_t>::op, RpnOperator<uint32_t>::op, RpnOperator<int64_t>::op, RpnOperator<uint64_t>::op, RpnOperator<float>::op, RpnOperator<double>::op, }
-
-RpnTypedOperatorTableItem g_rpnTypedOperatorTable[] =
-{
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_Unknown = 0,
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_Identifier,				///< 識別子
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_GroupStart,			// (
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_GroupEnd,				// )
-
-	LN_RPN_OPERATOR_DEFINE(UnaryPlus),		// RPN_TT_OP_UnaryPlus,			// + (Unary)
-	LN_RPN_OPERATOR_DEFINE(UnaryMinus),		// RPN_TT_OP_UnaryMinus,			// - (Unary)
-	LN_RPN_OPERATOR_DEFINE(Multiply),		// RPN_TT_OP_Multiply,				// *
-	LN_RPN_OPERATOR_DEFINE(Divide),			// RPN_TT_OP_Divide,				// /
-	LN_RPN_OPERATOR_DEFINE(Modulus),		// RPN_TT_OP_Modulus,				// %
-	LN_RPN_OPERATOR_DEFINE(BinaryPlus),		// RPN_TT_OP_BinaryPlus,			// + (Binary)
-	LN_RPN_OPERATOR_DEFINE(BinaryMinus),	// RPN_TT_OP_BinaryMinus,			// - (Binary)
-
-	LN_RPN_OPERATOR_DEFINE_INTEGER(LeftShift),		// RPN_TT_OP_LeftShift,			// <<
-	LN_RPN_OPERATOR_DEFINE_INTEGER(RightShift),		// RPN_TT_OP_RightShift,			// >>
-
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompLessThan),			// RPN_TT_OP_CompLessThan,			// <
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompLessThanEqual),		// RPN_TT_OP_CompLessThanEqual,	// <=
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompGreaterThen),		// RPN_TT_OP_CompGreaterThen,		// >
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompGreaterThenEqual),	// RPN_TT_OP_CompGreaterThenEqual,	// >=
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompEqual),				// RPN_TT_OP_CompEqual,			// ==
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompNotEqual),			// RPN_TT_OP_CompNotEqual,			// !=
-
-	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseNot),		// RPN_TT_OP_BitwiseNot,			// ~ (Unary)
-	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseAnd),		// RPN_TT_OP_BitwiseAnd,			// &
-	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseXor),		// RPN_TT_OP_BitwiseXor,			// ^
-	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseOr),		// RPN_TT_OP_BitwiseOr,			// |
-
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(LogicalNot),		// RPN_TT_OP_LogicalNot,			// ! (Unary)
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(LogicalAnd),		// RPN_TT_OP_LogicalAnd,			// &&
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(LogicalOr),		// RPN_TT_OP_LogicalOr,			// ||
-
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_CondTrue,				// ? (条件演算子)
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_CondFalse,			// : (条件演算子)
-
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_Comma,				// , (カンマ演算子 or 実引数区切り文字)
-
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_FuncCall,				///< 関数呼び出し (識別子部分を指す)
-
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_Int32,	/**< C/C++ の char/wchar_t もこれになる */
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_UInt32,
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_Int64,
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_UInt64,
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_Float,	/**< 32bit */
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_Double,	/**< 64bit */
-};
-#endif
-
-
-// http://en.cppreference.com/w/cpp/language/expressions
-// http://en.cppreference.com/w/cpp/language/operator_logical
-struct RpnOperator
-{
-	template<typename T> static T UnaryPlus(T /*lhs*/, T rhs) { return rhs; }
-	template<typename T> static T UnaryMinus(T /*lhs*/, T rhs) { return -rhs; }
-	template<> static uint32_t UnaryMinus<uint32_t>(uint32_t /*lhs*/, uint32_t rhs) { return (uint32_t)-((int32_t)rhs); }
-	template<> static uint64_t UnaryMinus<uint64_t>(uint64_t /*lhs*/, uint64_t rhs) { return (uint64_t)-((int64_t)rhs); }
-
-	template<typename T> static T Multiply(T lhs, T rhs) { return lhs * rhs; }
-	template<typename T> static T Divide(T lhs, T rhs) { return lhs / rhs; }
-	template<typename T> static T Modulus(T lhs, T rhs) { return lhs % rhs; }
-	template<typename T> static T BinaryPlus(T lhs, T rhs) { return lhs + rhs; }
-	template<typename T> static T BinaryMinus(T lhs, T rhs) { return lhs - rhs; }
-
-	template<typename T> static T LeftShift(T lhs, T rhs) { return lhs << rhs; }
-	template<typename T> static T RightShift(T lhs, T rhs) { return lhs >> rhs; }
-
-	template<typename T> static bool CompLessThan(T lhs, T rhs) { return lhs < rhs; }
-	template<typename T> static bool CompLessThanEqual(T lhs, T rhs) { return lhs <= rhs; }
-	template<typename T> static bool CompGreaterThen(T lhs, T rhs) { return lhs > rhs; }
-	template<typename T> static bool CompGreaterThenEqual(T lhs, T rhs) { return lhs >= rhs; }
-	template<typename T> static bool CompEqual(T lhs, T rhs) { return lhs == rhs; }
-	template<typename T> static bool CompNotEqual(T lhs, T rhs) { return lhs != rhs; }
-
-	template<typename T> static T BitwiseNot(T /*lhs*/, T rhs) { return ~rhs; }
-	template<typename T> static T BitwiseAnd(T lhs, T rhs) { return lhs & rhs; }
-	template<typename T> static T BitwiseXor(T lhs, T rhs) { return lhs ^ rhs; }
-	template<typename T> static T BitwiseOr(T lhs, T rhs) { return lhs | rhs; }
-
-	template<typename T> static bool LogicalNot(T /*lhs*/, T rhs) { return !(rhs != 0); }
-	template<typename T> static bool LogicalAnd(T lhs, T rhs) { return (lhs != 0) && (rhs != 0); }
-	template<typename T> static bool LogicalOr(T lhs, T rhs) { return (lhs != 0) || (rhs != 0); }
-
-
-	template<> static bool LogicalNot<bool>(bool /*lhs*/, bool rhs) { return !rhs; }
-	template<> static bool LogicalAnd<bool>(bool lhs, bool rhs) { return lhs && rhs; }
-	template<> static bool LogicalOr<bool>(bool lhs, bool rhs) { return lhs || rhs; }
-};
-
-
-
-struct TokenTypeTableItem
-{
-	RpnTokenGroup		tokenGroup;
-	RpnOperatorGroup	operatorGroup;
-	bool				isUnary;
-};
-static TokenTypeTableItem g_tokenTypeTable[] = 
-{
-	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_Unknown = 0,
-	{ RpnTokenGroup::Identifier,	RpnOperatorGroup::Unknown,		false },		// RPN_TT_Identifier,				///< 識別子
-	//{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLiteral,			///< 数値リテラル
-	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_OP_GroupStart,			// (	※ 括弧はパースで取り除かれるので Unknown
-	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_OP_GroupEnd,				// )	※ 括弧はパースで取り除かれるので Unknown
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	true },			// RPN_TT_OP_UnaryPlus,			// + (Unary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	true },			// RPN_TT_OP_UnaryMinus,			// - (Unary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false },		// RPN_TT_OP_Multiply,				// *
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false },		// RPN_TT_OP_Divide,				// /
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false },		// RPN_TT_OP_Modulus,				// %
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false },		// RPN_TT_OP_BinaryPlus,			// + (Binary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Arithmetic,	false },		// RPN_TT_OP_BinaryMinus,			// - (Binary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false },		// RPN_TT_OP_LeftShift,			// <<
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false },		// RPN_TT_OP_RightShift,			// >>
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompLessThan,			// <
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompLessThanEqual,	// <=
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompGreaterThen,		// >
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompGreaterThenEqual,	// >=
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompEqual,			// ==
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Comparison,	false },		// RPN_TT_OP_CompNotEqual,			// !=
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		true },			// RPN_TT_OP_BitwiseNot,			// ~ (Unary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false },		// RPN_TT_OP_BitwiseAnd,			// &
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false },		// RPN_TT_OP_BitwiseXor,			// ^
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Bitwise,		false },		// RPN_TT_OP_BitwiseOr,			// |
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical,		true },			// RPN_TT_OP_LogicalNot,			// ! (Unary)
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical,		false },		// RPN_TT_OP_LogicalAnd,			// &&
-	{ RpnTokenGroup::Operator,		RpnOperatorGroup::Logical,		false },		// RPN_TT_OP_LogicalOr,			// ||
-	{ RpnTokenGroup::CondTrue,		RpnOperatorGroup::Conditional,	false },		// RPN_TT_OP_CondTrue,				// ? (条件演算子)
-	{ RpnTokenGroup::CondFalse,		RpnOperatorGroup::Conditional,	false },		// RPN_TT_OP_CondFalse,			// : (条件演算子)
-	{ RpnTokenGroup::Unknown,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_OP_Comma,				// , (カンマ演算子 or 実引数区切り文字)	※未対応
-	{ RpnTokenGroup::FunctionCall,	RpnOperatorGroup::Unknown,		false },		// RPN_TT_OP_FuncCall,				///< 関数呼び出し (識別子部分を指す)
-	
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_Null,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_True,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_False,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_Int32,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_UInt32,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_Int64,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_UInt64,
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_Float,	/**< 32bit */
-	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false },		// RPN_TT_NumericLitaral_Double,	/**< 64bit */
-};
-
-typedef nullptr_t(*NullOperator)(nullptr_t lhs, nullptr_t rhs);
-typedef bool(*BooleanOperator)(bool lhs, bool rhs);
-typedef int32_t(*Int32Operator)(int32_t lhs, int32_t rhs);
-typedef uint32_t(*UInt32Operator)(uint32_t lhs, uint32_t rhs);
-typedef int64_t(*Int64Operator)(int64_t lhs, int64_t rhs);
-typedef uint64_t(*UInt64Operator)(uint64_t lhs, uint64_t rhs);
-typedef float(*FloatOperator)(float lhs, float rhs);
-typedef double(*DoubleOperator)(double lhs, double rhs);
-
-typedef bool(*NullLogicalOperator)(nullptr_t lhs, nullptr_t rhs);
-typedef bool(*BooleanLogicalOperator)(bool lhs, bool rhs);
-typedef bool(*Int32LogicalOperator)(int32_t lhs, int32_t rhs);
-typedef bool(*UInt32LogicalOperator)(uint32_t lhs, uint32_t rhs);
-typedef bool(*Int64LogicalOperator)(int64_t lhs, int64_t rhs);
-typedef bool(*UInt64LogicalOperator)(uint64_t lhs, uint64_t rhs);
-typedef bool(*FloatLogicalOperator)(float lhs, float rhs);
-typedef bool(*DoubleLogicalOperator)(double lhs, double rhs);
-
-struct RpnTypedOperatorTableItem
-{
-	NullOperator	nullptrOperator;
-	BooleanOperator	booleanOperator;
-	Int32Operator	int32Operator;
-	UInt32Operator	uint32Operator;
-	Int64Operator	int64Operator;
-	UInt64Operator	uint64Operator;
-	FloatOperator	floatOperator;
-	DoubleOperator	doubleOperator;
-
-	NullLogicalOperator		nullptrLogicalOperator;
-	BooleanLogicalOperator	booleanLogicalOperator;
-	Int32LogicalOperator	int32LogicalOperator;
-	UInt32LogicalOperator	uint32LogicalOperator;
-	Int64LogicalOperator	int64LogicalOperator;
-	UInt64LogicalOperator	uint64LogicalOperator;
-	FloatLogicalOperator	floatLogicalOperator;
-	DoubleLogicalOperator	doubleLogicalOperator;
-};
-
-#define LN_RPN_OPERATOR_DEFINE_NONE \
-	{	nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, \
-		nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, }
-
-#define LN_RPN_OPERATOR_DEFINE(op) \
-	{	nullptr, nullptr, RpnOperator::op<int32_t>, RpnOperator::op<uint32_t>, RpnOperator::op<int64_t>, RpnOperator::op<uint64_t>, RpnOperator::op<float>, RpnOperator::op<double>, \
-		nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, }
-
-#define LN_RPN_OPERATOR_DEFINE_INTEGER(op) \
-	{	nullptr, nullptr, RpnOperator::op<int32_t>, RpnOperator::op<uint32_t>, RpnOperator::op<int64_t>, RpnOperator::op<uint64_t>, nullptr, nullptr, \
-		nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, }
-
-#define LN_RPN_OPERATOR_DEFINE_LOGICAL(op) \
-	{	nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, \
-		nullptr, RpnOperator::op<bool>, RpnOperator::op<int32_t>, RpnOperator::op<uint32_t>, RpnOperator::op<int64_t>, RpnOperator::op<uint64_t>, RpnOperator::op<float>, RpnOperator::op<double>, }
-
-RpnTypedOperatorTableItem g_rpnTypedOperatorTable[] =
-{
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_Unknown = 0,
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_Identifier,				///< 識別子
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_GroupStart,			// (
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_GroupEnd,				// )
-
-	LN_RPN_OPERATOR_DEFINE(UnaryPlus),		// RPN_TT_OP_UnaryPlus,			// + (Unary)
-	LN_RPN_OPERATOR_DEFINE(UnaryMinus),		// RPN_TT_OP_UnaryMinus,			// - (Unary)
-	LN_RPN_OPERATOR_DEFINE(Multiply),		// RPN_TT_OP_Multiply,				// *
-	LN_RPN_OPERATOR_DEFINE(Divide),			// RPN_TT_OP_Divide,				// /
-	LN_RPN_OPERATOR_DEFINE_INTEGER(Modulus),		// RPN_TT_OP_Modulus,				// %
-	LN_RPN_OPERATOR_DEFINE(BinaryPlus),		// RPN_TT_OP_BinaryPlus,			// + (Binary)
-	LN_RPN_OPERATOR_DEFINE(BinaryMinus),	// RPN_TT_OP_BinaryMinus,			// - (Binary)
-
-	LN_RPN_OPERATOR_DEFINE_INTEGER(LeftShift),		// RPN_TT_OP_LeftShift,			// <<
-	LN_RPN_OPERATOR_DEFINE_INTEGER(RightShift),		// RPN_TT_OP_RightShift,			// >>
-
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompLessThan),			// RPN_TT_OP_CompLessThan,			// <
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompLessThanEqual),		// RPN_TT_OP_CompLessThanEqual,	// <=
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompGreaterThen),		// RPN_TT_OP_CompGreaterThen,		// >
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompGreaterThenEqual),	// RPN_TT_OP_CompGreaterThenEqual,	// >=
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompEqual),				// RPN_TT_OP_CompEqual,			// ==
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(CompNotEqual),			// RPN_TT_OP_CompNotEqual,			// !=
-
-	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseNot),		// RPN_TT_OP_BitwiseNot,			// ~ (Unary)
-	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseAnd),		// RPN_TT_OP_BitwiseAnd,			// &
-	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseXor),		// RPN_TT_OP_BitwiseXor,			// ^
-	LN_RPN_OPERATOR_DEFINE_INTEGER(BitwiseOr),		// RPN_TT_OP_BitwiseOr,			// |
-
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(LogicalNot),		// RPN_TT_OP_LogicalNot,			// ! (Unary)
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(LogicalAnd),		// RPN_TT_OP_LogicalAnd,			// &&
-	LN_RPN_OPERATOR_DEFINE_LOGICAL(LogicalOr),		// RPN_TT_OP_LogicalOr,			// ||
-
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_CondTrue,				// ? (条件演算子)
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_CondFalse,			// : (条件演算子)
-
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_Comma,				// , (カンマ演算子 or 実引数区切り文字)
-
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_OP_FuncCall,				///< 関数呼び出し (識別子部分を指す)
-
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_Int32,	/**< C/C++ の char/wchar_t もこれになる */
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_UInt32,
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_Int64,
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_UInt64,
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_Float,	/**< 32bit */
-	LN_RPN_OPERATOR_DEFINE_NONE,	// RPN_TT_NumericLitaral_Double,	/**< 64bit */
+	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_Null,
+	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_True,
+	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_False,
+	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_Int32,
+	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_UInt32,
+	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_Int64,
+	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_UInt64,
+	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_Float,	/**< 32bit */
+	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_Double,	/**< 64bit */
 };
 
 // 両辺の型は揃っていることが前提
-static bool EvalOperand(const RPNToken& token, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand)
+static bool EvalOperand(RPNTokenType tokenType, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand)
 {
-	auto item = g_rpnTypedOperatorTable[token.Type];
+	auto item = g_tokenTypeTable[tokenType].eval;
 	outOperand->type = rhs.type;	// 単項の場合は lhs が Unknown になっているので rhs で見る
 	switch (rhs.type)
 	{
-	case RpnOperandType::Boolean:	outOperand->valueBoolean = item.booleanOperator(lhs.valueBoolean, rhs.valueBoolean); return true;
-	case RpnOperandType::Int32:		outOperand->valueInt32 = item.int32Operator(lhs.valueInt32, rhs.valueInt32); return true;
-	case RpnOperandType::UInt32:	outOperand->valueUInt32 = item.uint32Operator(lhs.valueUInt32, rhs.valueUInt32); return true;
-	case RpnOperandType::Int64:		outOperand->valueInt64 = item.int64Operator(lhs.valueInt64, rhs.valueInt64); return true;
-	case RpnOperandType::UInt64:	outOperand->valueUInt64 = item.uint64Operator(lhs.valueUInt64, rhs.valueUInt64); return true;
-	case RpnOperandType::Float:		outOperand->valueFloat = item.floatOperator(lhs.valueFloat, rhs.valueFloat); return true;
-	case RpnOperandType::Double:	outOperand->valueDouble = item.doubleOperator(lhs.valueDouble, rhs.valueDouble); return true;
+	case RpnOperandType::Boolean:	if (item.operaotrBoolean != nullptr) { item.operaotrBoolean(lhs.valueBoolean, rhs.valueBoolean, outOperand); return true; } break;
+	case RpnOperandType::Int32:		if (item.operaotrInt32 != nullptr) { item.operaotrInt32(lhs.valueInt32, rhs.valueInt32, outOperand); return true; } break;
+	case RpnOperandType::UInt32:	if (item.operaotrUInt32 != nullptr) { item.operaotrUInt32(lhs.valueUInt32, rhs.valueUInt32, outOperand); return true; } break;
+	case RpnOperandType::Int64:		if (item.operaotrInt64 != nullptr) { item.operaotrInt64(lhs.valueInt64, rhs.valueInt64, outOperand); return true; } break;
+	case RpnOperandType::UInt64:	if (item.operaotrUInt64 != nullptr) { item.operaotrUInt64(lhs.valueUInt64, rhs.valueUInt64, outOperand); return true; } break;
+	case RpnOperandType::Float:		if (item.operaotrFloat != nullptr) { item.operaotrFloat(lhs.valueFloat, rhs.valueFloat, outOperand); return true; } break;
+	case RpnOperandType::Double:	if (item.operaotrDouble != nullptr) { item.operaotrDouble(lhs.valueDouble, rhs.valueDouble, outOperand); return true; } break;
 	default:
 		assert(0);
-		return false;
+		break;
 	}
+	return false;
 }
 
 //=============================================================================
@@ -1176,7 +898,7 @@ bool RpnEvaluator::EvalOperatorArithmetic(const RPNToken& token, const RpnOperan
 {
 	RpnOperand lhs, rhs;
 	ExpandOperands(lhs_, rhs_, &lhs, &rhs);
-	return EvalOperand(token, lhs, rhs, outOperand);
+	return EvalOperand(token.Type, lhs, rhs, outOperand);
 }
 
 //-----------------------------------------------------------------------------

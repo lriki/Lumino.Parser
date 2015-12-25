@@ -208,7 +208,13 @@ public:
 	//	
 	//}
 
-
+	void Set(bool value) { valueBoolean = value; type = RpnOperandType::Boolean; }
+	void Set(int32_t value) { valueInt32 = value; type = RpnOperandType::Int32; }
+	void Set(uint32_t value) { valueUInt32 = value; type = RpnOperandType::UInt32; }
+	void Set(int64_t value) { valueInt64 = value; type = RpnOperandType::Int64; }
+	void Set(uint64_t value) { valueUInt64 = value; type = RpnOperandType::UInt64; }
+	void Set(float value) { valueFloat = value; type = RpnOperandType::Float; }
+	void Set(double value) { valueDouble = value; type = RpnOperandType::Double; }
 };
 
 class RpnEvaluator

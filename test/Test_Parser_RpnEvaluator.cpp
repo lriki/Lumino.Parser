@@ -68,6 +68,31 @@ TEST_F(Test_Parser_RpnEvaluator, Basic)
 		Eval("-2");
 		ASSERT_EQ(-2, m_value.valueInt32);
 	}
+	// <Test> *
+	{
+		Eval("2*3");
+		ASSERT_EQ(6, m_value.valueInt32);
+	}
+	// <Test> /
+	{
+		Eval("10/5");
+		ASSERT_EQ(2, m_value.valueInt32);
+	}
+	// <Test> %
+	{
+		Eval("7%3");
+		ASSERT_EQ(1, m_value.valueInt32);
+	}
+	// <Test> +
+	{
+		Eval("1+2");
+		ASSERT_EQ(3, m_value.valueInt32);
+	}
+	// <Test> -
+	{
+		Eval("1-2");
+		ASSERT_EQ(-1, m_value.valueInt32);
+	}
 }
 
 

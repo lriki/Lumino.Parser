@@ -826,7 +826,7 @@ int CppLexer::IsOperator(const Range& buffer, int* langTokenType)
 			{ LN_T(TChar, "<<"),	2,	TT_CppOP_LeftShift },
 			{ LN_T(TChar, ">>"),	2,	TT_CppOP_RightShift },
 			{ LN_T(TChar, "+"),		1,	TT_CppOP_Plus },
-			{ LN_T(TChar, "-"),		1,	TT_CppOP_Minul },
+			{ LN_T(TChar, "-"),		1,	TT_CppOP_Minus },
 			{ LN_T(TChar, "*"),		1,	TT_CppOP_Asterisk },
 			{ LN_T(TChar, "/"),		1,	TT_CppOP_Slash },
 			{ LN_T(TChar, "%"),		1,	TT_CppOP_Parseint },

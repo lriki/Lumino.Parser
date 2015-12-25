@@ -119,7 +119,7 @@ enum CppTokenType
 	TT_CppOP_LeftShift,			// <<
 	TT_CppOP_RightShift,		// >>
 	TT_CppOP_Plus,				// +
-	TT_CppOP_Minul,				// -
+	TT_CppOP_Minus,				// -
 	TT_CppOP_Asterisk,			// *
 	TT_CppOP_Slash,				// /
 	TT_CppOP_Parseint,			// %
