@@ -14,20 +14,16 @@ enum RPNTokenType
 	RPN_TT_Unknown = 0,
 
 	RPN_TT_Identifier,				///< 識別子
-	RPN_TT_NumericLiteral,			///< 数値リテラル
+	//RPN_TT_NumericLiteral,			///< 数値リテラル
 
 	RPN_TT_OP_GroupStart,			// (
 	RPN_TT_OP_GroupEnd,				// )
 
 	RPN_TT_OP_UnaryPlus,			// + (Unary)
 	RPN_TT_OP_UnaryMinus,			// - (Unary)
-	RPN_TT_OP_LogicalNot,			// !
-	RPN_TT_OP_BitwiseNot,			// ~
-
 	RPN_TT_OP_Multiply,				// *
 	RPN_TT_OP_Divide,				// /
 	RPN_TT_OP_Modulus,				// %
-
 	RPN_TT_OP_BinaryPlus,			// + (Binary)
 	RPN_TT_OP_BinaryMinus,			// - (Binary)
 
@@ -38,18 +34,16 @@ enum RPNTokenType
 	RPN_TT_OP_CompLessThanEqual,	// <=
 	RPN_TT_OP_CompGreaterThen,		// >
 	RPN_TT_OP_CompGreaterThenEqual,	// >=
-
 	RPN_TT_OP_CompEqual,			// ==
 	RPN_TT_OP_CompNotEqual,			// !=
 
+	RPN_TT_OP_BitwiseNot,			// ~ (Unary)
 	RPN_TT_OP_BitwiseAnd,			// &
-
 	RPN_TT_OP_BitwiseXor,			// ^
-
 	RPN_TT_OP_BitwiseOr,			// |
 
+	RPN_TT_OP_LogicalNot,			// ! (Unary)
 	RPN_TT_OP_LogicalAnd,			// &&
-
 	RPN_TT_OP_LogicalOr,			// ||
 
 	RPN_TT_OP_CondTrue,				// ? (条件演算子)
@@ -57,10 +51,17 @@ enum RPNTokenType
 
 	RPN_TT_OP_Comma,				// , (カンマ演算子 or 実引数区切り文字)
 
-
-
 	RPN_TT_OP_FuncCall,				///< 関数呼び出し (識別子部分を指す)
 
+	RPN_TT_NumericLitaral_Null,
+	RPN_TT_NumericLitaral_True,
+	RPN_TT_NumericLitaral_False,
+	RPN_TT_NumericLitaral_Int32,	/**< C/C++ の char/wchar_t もこれになる */
+	RPN_TT_NumericLitaral_UInt32,
+	RPN_TT_NumericLitaral_Int64,
+	RPN_TT_NumericLitaral_UInt64,
+	RPN_TT_NumericLitaral_Float,	/**< 32bit */
+	RPN_TT_NumericLitaral_Double,	/**< 64bit */
 
 	RPN_TT_Max,	
 };
@@ -69,12 +70,12 @@ enum class RpnTokenGroup
 {
 	Unknown,
 	Literal,
-	Constant,
+	//Constant,
 	Identifier,
 	Operator,
 	CondTrue,
 	CondFalse,
-	Function,
+	FunctionCall,
 	Assignment,
 };
 
@@ -115,6 +116,7 @@ public:
 
 	RpnTokenGroup GetTokenGroup() const;
 	RpnOperatorGroup GetOperatorGroup() const;
+	bool IsUnary() const;
 
 public:
 	RPNTokenType		Type;
@@ -155,6 +157,7 @@ private:
 private:
 	RefPtr<RPNTokenList>	m_tokenList;
 	RefPtr<RPNTokenList>	m_rpnTokenList;
+	DiagnosticsItemSet*		m_diag;
 
 	Array<RPNToken*>		m_tmpRPNTokenList;
 	Stack<RPNToken*>		m_opStack;			// 演算子用の作業スタック
@@ -169,7 +172,17 @@ private:
 
 enum class RpnOperandType
 {
+	Unknown,
+	Null,
+	Boolean,
+	Int32,		/* uint8 等はこれに拡張される。*/
+	UInt32,
+	Int64,
+	UInt64,
+	Float,
 	Double,
+
+	/* 後ろへ行くほど優先度が高い */
 };
 
 
@@ -180,7 +193,13 @@ public:
 
 	union
 	{
-		double	valueDouble;
+		bool		valueBoolean;
+		int32_t		valueInt32;
+		uint32_t	valueUInt32;
+		int64_t		valueInt64;
+		uint64_t	valueUInt64;
+		float		valueFloat;
+		double		valueDouble;
 	};
 
 	//RpnOperand(const RPNToken& rpnToken)
@@ -188,6 +207,8 @@ public:
 	//	if (rpnToken.Type == RPN_TT_NumericLiteral)
 	//	
 	//}
+
+
 };
 
 class RpnEvaluator
@@ -197,6 +218,12 @@ public:
 
 private:
 	bool MakeOperand(const RPNToken& token, RpnOperand* outOperand);
+	bool EvalOperator(const RPNToken& token, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
+	bool EvalOperatorArithmetic(const RPNToken& token, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
+	bool CallFunction(const RPNToken& token, Array<RpnOperand> args, RpnOperand* outOperand);
+
+	static RpnOperandType ExpandOperands(const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outlhs, RpnOperand* outrhs);
+	static void CastOperand(RpnOperand* operand, RpnOperandType to);
 
 private:
 	DiagnosticsItemSet*	m_diag;

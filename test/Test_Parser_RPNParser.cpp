@@ -20,6 +20,8 @@ TEST_F(Test_Parser_RPNParser, Parse)
 	DiagnosticsItemSet diag;
 	CppLexer lex;
 
+	auto a = 1ull + 1;
+
 	// <Test> •’Ê‚É
 	{
 		DiagnosticsItemSet diag;
@@ -28,8 +30,8 @@ TEST_F(Test_Parser_RPNParser, Parse)
 		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
 
 		ASSERT_EQ(4, rpnTokens->GetCount());
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(1).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
 		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(2).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(3).Type);
 	}
@@ -41,9 +43,9 @@ TEST_F(Test_Parser_RPNParser, Parse)
 		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
 
 		ASSERT_EQ(6, rpnTokens->GetCount());
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(1).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(2).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(2).Type);
 		ASSERT_EQ(RPN_TT_OP_Multiply, rpnTokens->GetAt(3).Type);
 		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(4).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(5).Type);
@@ -56,10 +58,10 @@ TEST_F(Test_Parser_RPNParser, Parse)
 		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
 
 		ASSERT_EQ(6, rpnTokens->GetCount());
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(1).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
 		ASSERT_EQ(RPN_TT_OP_Multiply, rpnTokens->GetAt(2).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(3).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(3).Type);
 		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(4).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(5).Type);
 	}
@@ -71,9 +73,9 @@ TEST_F(Test_Parser_RPNParser, Parse)
 		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
 
 		ASSERT_EQ(6, rpnTokens->GetCount());
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(1).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(2).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(2).Type);
 		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(3).Type);
 		ASSERT_EQ(RPN_TT_OP_Multiply, rpnTokens->GetAt(4).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(5).Type);
@@ -86,8 +88,8 @@ TEST_F(Test_Parser_RPNParser, Parse)
 		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
 
 		ASSERT_EQ(5, rpnTokens->GetCount());
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(1).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
 		ASSERT_EQ(RPN_TT_OP_UnaryMinus, rpnTokens->GetAt(2).Type);
 		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(3).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(4).Type);
@@ -100,16 +102,16 @@ TEST_F(Test_Parser_RPNParser, Parse)
 		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
 
 		ASSERT_EQ(12, rpnTokens->GetCount());
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(1).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
 		ASSERT_EQ(RPN_TT_OP_CompNotEqual, rpnTokens->GetAt(2).Type);
 		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(3).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(4).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(5).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(4).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(5).Type);
 		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(6).Type);
 		ASSERT_EQ(RPN_TT_OP_CondFalse, rpnTokens->GetAt(7).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(8).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(9).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(8).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(9).Type);
 		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(10).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(11).Type);
 	}
@@ -121,23 +123,23 @@ TEST_F(Test_Parser_RPNParser, Parse)
 		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
 
 		ASSERT_EQ(18, rpnTokens->GetCount());
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type); 
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type); 
 		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(1).Type);	ASSERT_EQ(8, rpnTokens->GetAt(1).CondGoto);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(2).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(2).Type);
 		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(3).Type);	ASSERT_EQ(6, rpnTokens->GetAt(3).CondGoto);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(4).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(4).Type);
 		ASSERT_EQ(RPN_TT_OP_CondFalse, rpnTokens->GetAt(5).Type);	ASSERT_EQ(7, rpnTokens->GetAt(5).CondGoto);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(6).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(6).Type);
 		ASSERT_EQ(RPN_TT_OP_CondFalse, rpnTokens->GetAt(7).Type);	ASSERT_EQ(18, rpnTokens->GetAt(7).CondGoto);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(8).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(8).Type);
 		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(9).Type);	ASSERT_EQ(12, rpnTokens->GetAt(9).CondGoto);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(10).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(10).Type);
 		ASSERT_EQ(RPN_TT_OP_CondFalse, rpnTokens->GetAt(11).Type);	ASSERT_EQ(17, rpnTokens->GetAt(11).CondGoto);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(12).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(12).Type);
 		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(13).Type);	ASSERT_EQ(16, rpnTokens->GetAt(13).CondGoto);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(14).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(14).Type);
 		ASSERT_EQ(RPN_TT_OP_CondFalse, rpnTokens->GetAt(15).Type);	ASSERT_EQ(17, rpnTokens->GetAt(15).CondGoto);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(16).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(16).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(17).Type);
 	}
 
@@ -161,7 +163,7 @@ TEST_F(Test_Parser_RPNParser, Parse)
 		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
 
 		ASSERT_EQ(3, rpnTokens->GetCount());
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(1).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(2).Type);
 	}
@@ -173,14 +175,14 @@ TEST_F(Test_Parser_RPNParser, Parse)
 		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
 
 		ASSERT_EQ(11, rpnTokens->GetCount());
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(0).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(1).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
 		ASSERT_EQ(RPN_TT_OP_BinaryPlus, rpnTokens->GetAt(2).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(3).Type);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(4).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(3).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(4).Type);
 		ASSERT_EQ(RPN_TT_OP_Multiply, rpnTokens->GetAt(5).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(6).Type);	ASSERT_EQ(1, rpnTokens->GetAt(6).ElementCount);
-		ASSERT_EQ(RPN_TT_NumericLiteral, rpnTokens->GetAt(7).Type);
+		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(7).Type);
 		ASSERT_EQ(RPN_TT_OP_UnaryPlus, rpnTokens->GetAt(8).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(9).Type);	ASSERT_EQ(2, rpnTokens->GetAt(9).ElementCount);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(10).Type);	ASSERT_EQ(1, rpnTokens->GetAt(10).ElementCount);

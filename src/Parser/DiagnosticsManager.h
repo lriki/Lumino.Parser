@@ -18,10 +18,12 @@ enum class DiagnosticsCode
 
 
 	RpnEvaluatorGroup = 0x00020000,
-	RpnEvaluator_InvalidNumericLiteral	= Severity_Error | RpnEvaluatorGroup | 1,
-	RpnEvaluator_UnexpectedToken		= Severity_Error | RpnEvaluatorGroup | 2,	/**< 予期しないトークンが見つかった。*/
-	RpnEvaluator_InsufficientToken		= Severity_Error | RpnEvaluatorGroup | 3,	/**< 式を評価するためのトークンが不足している。(式が完結していない) */
-
+	RpnEvaluator_InvalidNumericLiteral		= Severity_Error | RpnEvaluatorGroup | 1,
+	RpnEvaluator_UnexpectedToken			= Severity_Error | RpnEvaluatorGroup | 2,	/**< 予期しないトークンが見つかった。*/
+	RpnEvaluator_InsufficientToken			= Severity_Error | RpnEvaluatorGroup | 3,	/**< 式を評価するためのトークンが不足している。(式が完結していない) */
+	RpnEvaluator_InvalidFuncCallArgsCount	= Severity_Error | RpnEvaluatorGroup | 4,	/**< 関数呼び出しの引数が足りない。*/
+	RpnEvaluator_InvalidOperatorSide		= Severity_Error | RpnEvaluatorGroup | 5,	/**< 演算子の辺に対するオペランドが足りない。*/
+	RpnEvaluator_InvalidNumericType			= Severity_Error | RpnEvaluatorGroup | 6,	/**< 無効な数値型のトークンが入力された。*/
 };
 
 enum class SeverityLevel

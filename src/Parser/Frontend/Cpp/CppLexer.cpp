@@ -221,6 +221,7 @@ int CppLexer::ReadKeyword(const Range& buffer, Token* outToken)
 	int len = IsKeyword(buffer, &lnagTokenType);
 	if (len > 0) {
 		*outToken = Token(CommonTokenType::Keyword, buffer.pos, buffer.pos + len, lnagTokenType);
+		return len;
 	}
 	return 0;
 }
