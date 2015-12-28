@@ -2,9 +2,9 @@
 #pragma once
 #include <Lumino/Base/Stack.h>
 #include <Lumino/IO/PathName.h>
-#include "Common.h"
-#include "Token.h"
-#include "TokenList.h"
+#include "../Common.h"
+#include "../Token.h"
+#include "../TokenList.h"
 
 LN_NAMESPACE_BEGIN
 namespace parser
@@ -169,8 +169,7 @@ private:
 
 
 
-
-enum class RpnOperandType
+LN_ENUM(RpnOperandType)
 {
 	Unknown,
 	Null,
@@ -184,7 +183,8 @@ enum class RpnOperandType
 
 	/* å„ÇÎÇ÷çsÇ≠ÇŸÇ«óDêÊìxÇ™çÇÇ¢ */
 };
-
+LN_ENUM_REFLECTION(RpnOperandType, Null, Boolean, Int32, UInt32, Int64, UInt64, Float, Double);
+LN_ENUM_DECLARE(RpnOperandType);
 
 class RpnOperand
 {
@@ -227,6 +227,7 @@ private:
 	bool EvalOperator(const RPNToken& token, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
 	bool EvalOperatorArithmetic(const RPNToken& token, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
 	bool CallFunction(const RPNToken& token, Array<RpnOperand> args, RpnOperand* outOperand);
+	bool EvalOperand(RPNTokenType tokenType, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
 
 	static RpnOperandType ExpandOperands(const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outlhs, RpnOperand* outrhs);
 	static void CastOperand(RpnOperand* operand, RpnOperandType to);

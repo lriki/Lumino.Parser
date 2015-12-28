@@ -1,7 +1,7 @@
 
-#include "Frontend\Cpp\CppLexer.h"
-#include "DiagnosticsManager.h"
-#include "RPNParser.h"
+#include "Cpp/CppLexer.h"
+#include "../DiagnosticsManager.h"
+#include "RpnParser.h"
 
 LN_NAMESPACE_BEGIN
 namespace parser
@@ -203,27 +203,6 @@ static TokenTypeTableItem g_tokenTypeTable[] =
 	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_Float,	/**< 32bit */
 	{ RpnTokenGroup::Literal,		RpnOperatorGroup::Unknown,		false,	LN_RPN_OPERATOR_DEFINE_NONE, },		// RPN_TT_NumericLitaral_Double,	/**< 64bit */
 };
-
-// 両辺の型は揃っていることが前提
-static bool EvalOperand(RPNTokenType tokenType, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand)
-{
-	auto item = g_tokenTypeTable[tokenType].eval;
-	outOperand->type = rhs.type;	// 単項の場合は lhs が Unknown になっているので rhs で見る
-	switch (rhs.type)
-	{
-	case RpnOperandType::Boolean:	if (item.operaotrBoolean != nullptr) { item.operaotrBoolean(lhs.valueBoolean, rhs.valueBoolean, outOperand); return true; } break;
-	case RpnOperandType::Int32:		if (item.operaotrInt32 != nullptr) { item.operaotrInt32(lhs.valueInt32, rhs.valueInt32, outOperand); return true; } break;
-	case RpnOperandType::UInt32:	if (item.operaotrUInt32 != nullptr) { item.operaotrUInt32(lhs.valueUInt32, rhs.valueUInt32, outOperand); return true; } break;
-	case RpnOperandType::Int64:		if (item.operaotrInt64 != nullptr) { item.operaotrInt64(lhs.valueInt64, rhs.valueInt64, outOperand); return true; } break;
-	case RpnOperandType::UInt64:	if (item.operaotrUInt64 != nullptr) { item.operaotrUInt64(lhs.valueUInt64, rhs.valueUInt64, outOperand); return true; } break;
-	case RpnOperandType::Float:		if (item.operaotrFloat != nullptr) { item.operaotrFloat(lhs.valueFloat, rhs.valueFloat, outOperand); return true; } break;
-	case RpnOperandType::Double:	if (item.operaotrDouble != nullptr) { item.operaotrDouble(lhs.valueDouble, rhs.valueDouble, outOperand); return true; } break;
-	default:
-		assert(0);
-		break;
-	}
-	return false;
-}
 
 //=============================================================================
 // RPNToken
@@ -917,6 +896,31 @@ bool RpnEvaluator::CallFunction(const RPNToken& token, Array<RpnOperand> args, R
 		LN_THROW(0, NotImplementedException);
 		return false;
 	}
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+bool RpnEvaluator::EvalOperand(RPNTokenType tokenType, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand)
+{
+	auto item = g_tokenTypeTable[tokenType].eval;
+	outOperand->type = rhs.type;	// 単項の場合は lhs が Unknown になっているので rhs で見る
+	switch (rhs.type)
+	{
+	case RpnOperandType::Boolean:	if (item.operaotrBoolean != nullptr) { item.operaotrBoolean(lhs.valueBoolean, rhs.valueBoolean, outOperand); return true; } break;
+	case RpnOperandType::Int32:		if (item.operaotrInt32 != nullptr) { item.operaotrInt32(lhs.valueInt32, rhs.valueInt32, outOperand); return true; } break;
+	case RpnOperandType::UInt32:	if (item.operaotrUInt32 != nullptr) { item.operaotrUInt32(lhs.valueUInt32, rhs.valueUInt32, outOperand); return true; } break;
+	case RpnOperandType::Int64:		if (item.operaotrInt64 != nullptr) { item.operaotrInt64(lhs.valueInt64, rhs.valueInt64, outOperand); return true; } break;
+	case RpnOperandType::UInt64:	if (item.operaotrUInt64 != nullptr) { item.operaotrUInt64(lhs.valueUInt64, rhs.valueUInt64, outOperand); return true; } break;
+	case RpnOperandType::Float:		if (item.operaotrFloat != nullptr) { item.operaotrFloat(lhs.valueFloat, rhs.valueFloat, outOperand); return true; } break;
+	case RpnOperandType::Double:	if (item.operaotrDouble != nullptr) { item.operaotrDouble(lhs.valueDouble, rhs.valueDouble, outOperand); return true; } break;
+	default:
+		assert(0);
+		break;
+	}
+	// Error: 指定されたオペランドの型が不正。
+	m_diag->Report(DiagnosticsCode::RpnEvaluator_OperatorInvalidType, rhs.type.ToString());
+	return false;
 }
 
 //-----------------------------------------------------------------------------

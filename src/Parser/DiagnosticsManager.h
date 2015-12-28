@@ -19,11 +19,12 @@ enum class DiagnosticsCode
 
 	RpnEvaluatorGroup = 0x00020000,
 	RpnEvaluator_InvalidNumericLiteral		= Severity_Error | RpnEvaluatorGroup | 1,
-	RpnEvaluator_UnexpectedToken			= Severity_Error | RpnEvaluatorGroup | 2,	/**< 予期しないトークンが見つかった。*/
-	RpnEvaluator_InsufficientToken			= Severity_Error | RpnEvaluatorGroup | 3,	/**< 式を評価するためのトークンが不足している。(式が完結していない) */
-	RpnEvaluator_InvalidFuncCallArgsCount	= Severity_Error | RpnEvaluatorGroup | 4,	/**< 関数呼び出しの引数が足りない。*/
-	RpnEvaluator_InvalidOperatorSide		= Severity_Error | RpnEvaluatorGroup | 5,	/**< 演算子の辺に対するオペランドが足りない。*/
-	RpnEvaluator_InvalidNumericType			= Severity_Error | RpnEvaluatorGroup | 6,	/**< 無効な数値型のトークンが入力された。*/
+	RpnEvaluator_UnexpectedToken			= Severity_Error | RpnEvaluatorGroup | 2,	/**< 予期しないトークンが見つかりました。*/
+	RpnEvaluator_InsufficientToken			= Severity_Error | RpnEvaluatorGroup | 3,	/**< 式を評価するためのトークンが不足しています。(式が完結していない) */
+	RpnEvaluator_InvalidFuncCallArgsCount	= Severity_Error | RpnEvaluatorGroup | 4,	/**< 関数呼び出しの引数が足りません。*/
+	RpnEvaluator_InvalidOperatorSide		= Severity_Error | RpnEvaluatorGroup | 5,	/**< 演算子の辺に対するオペランドが足りません。*/
+	RpnEvaluator_InvalidNumericType			= Severity_Error | RpnEvaluatorGroup | 6,	/**< 無効な数値型のトークンが入力されました。*/
+	RpnEvaluator_OperatorInvalidType		= Severity_Error | RpnEvaluatorGroup | 7,	/**< 演算子の型に無効な型({0})のオペランドが指定されています。*/
 };
 
 enum class SeverityLevel
@@ -58,6 +59,7 @@ class DiagnosticsItem
 {
 public:
 	DiagnosticsCode GetCode() const { return m_code; }
+	const StringArrayA& GetOptions() const { return m_options; }
 
 private:
 	friend class DiagnosticsItemSet;
@@ -66,6 +68,7 @@ private:
 	DiagnosticsCode	m_code;
 	int				m_lineNumber;
 	int				m_columnNumber;
+	StringArrayA	m_options;
 };
 
 /**
@@ -84,6 +87,7 @@ public:
 	int SetCurrentColumnNumber(int column) { m_currentColumnNumber = column; }
 
 	void Report(DiagnosticsCode code);
+	void Report(DiagnosticsCode code, StringA option1);
 
 	const Array<DiagnosticsItem>* GetItems() { return &m_items; }
 

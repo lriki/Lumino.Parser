@@ -20,8 +20,6 @@ TEST_F(Test_Parser_RPNParser, Parse)
 	DiagnosticsItemSet diag;
 	CppLexer lex;
 
-	auto a = 1ull + 1;
-
 	// <Test> ïÅí Ç…
 	{
 		DiagnosticsItemSet diag;

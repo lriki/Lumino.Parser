@@ -16,15 +16,17 @@ protected:
 	RpnOperand m_value;
 	void Eval(const char* exp)
 	{
-		m_buffer = ByteBuffer(exp);
-
-		auto tokens = m_lex.Tokenize(m_buffer, &m_diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &m_diag);
-
-		bool r = m_eval.TryEval(rpnTokens, &m_diag, &m_value);
+		bool r = TryEval(exp);
 		if (!r || !m_diag.GetItems()->IsEmpty()) {
 			LN_THROW(0, InvalidOperationException);
 		}
+	}
+	bool TryEval(const char* exp)
+	{
+		m_buffer = ByteBuffer(exp);
+		auto tokens = m_lex.Tokenize(m_buffer, &m_diag);
+		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &m_diag);
+		return m_eval.TryEval(rpnTokens, &m_diag, &m_value);
 	}
 };
 
@@ -95,4 +97,14 @@ TEST_F(Test_Parser_RpnEvaluator, Basic)
 	}
 }
 
-
+//-----------------------------------------------------------------------------
+TEST_F(Test_Parser_RpnEvaluator, Error)
+{
+	// <Test> RpnEvaluator_OperatorInvalidType
+	{
+		ASSERT_EQ(false, TryEval("7%3.f"));
+		ASSERT_EQ(1, m_diag.GetItems()->GetCount());
+		ASSERT_EQ(DiagnosticsCode::RpnEvaluator_OperatorInvalidType, m_diag.GetItems()->GetAt(0).GetCode());
+		ASSERT_EQ("Float", m_diag.GetItems()->GetAt(0).GetOptions().GetAt(0));
+	}
+}

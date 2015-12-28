@@ -12,9 +12,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\Parser\RPNParser.h">
-      <Filter>Parser</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\Parser\Token.h">
       <Filter>Parser</Filter>
     </ClInclude>
@@ -36,11 +33,11 @@
     <ClInclude Include="..\..\src\Parser\DiagnosticsManager.h">
       <Filter>Parser</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Parser\Frontend\RpnParser.h">
+      <Filter>Parser\Frontend</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\Parser\RPNParser.cpp">
-      <Filter>Parser</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\Parser\FrontEnd\Lexer.cpp">
       <Filter>Parser\Frontend</Filter>
     </ClCompile>
@@ -49,6 +46,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Parser\DiagnosticsManager.cpp">
       <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\Frontend\RpnParser.cpp">
+      <Filter>Parser\Frontend</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
