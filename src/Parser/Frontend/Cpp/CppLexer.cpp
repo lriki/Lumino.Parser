@@ -502,12 +502,15 @@ int CppLexer::ReadNumericLiteral(const Range& buffer, Token* outToken)
 				continue;
 			}
 			// 実数型
-			len = IsRealSuffix(r, &litaralType);
-			if (len > 0) {
-				r.pos += len;
-				bExistSuffix = true;	// サフィックスを見つけた
-				nStep = 10;
-				continue;
+			if (!bHexMode)	// 16新数の F と float の F を区別したい
+			{
+				len = IsRealSuffix(r, &litaralType);
+				if (len > 0) {
+					r.pos += len;
+					bExistSuffix = true;	// サフィックスを見つけた
+					nStep = 10;
+					continue;
+				}
 			}
 			// ※ 50LL のように重複の可能性があるため、複数見つかってもエラーにしない
 		}

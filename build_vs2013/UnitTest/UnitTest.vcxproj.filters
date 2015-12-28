@@ -8,8 +8,8 @@
       <Filter>gtest</Filter>
     </ClCompile>
     <ClCompile Include="..\..\test\Test_Parser_CppLexer.cpp" />
-    <ClCompile Include="..\..\test\Test_Parser_RPNParser.cpp" />
     <ClCompile Include="..\..\test\Test_Parser_RpnEvaluator.cpp" />
+    <ClCompile Include="..\..\test\Test_Parser_RpnParser.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gtest">

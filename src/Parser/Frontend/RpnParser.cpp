@@ -6,19 +6,6 @@
 LN_NAMESPACE_BEGIN
 namespace parser
 {
-
-//template<typename TChar>
-//class RPNTokenizer
-//	: public ParserObject<TChar>
-//{
-//public:
-//	typename typedef RPNElement<TChar>	RPNElementT;
-//	typename typedef Array<RPNElementT>	RPNElementListT;
-//
-//public:
-//	static void Tokenize(Position exprBegin, Position exprEnd, RPNElementListT* outElementList);
-//};
-
 /*
 	C++ の演算子と優先順位
 	http://ja.cppreference.com/w/cpp/language/operator_precedence
@@ -76,11 +63,10 @@ namespace parser
 	
 	前述の通り、ダミー関数を利用する。
 	ダミー関数は一番後ろの引数の評価結果を返す関数とする。
-
-
-	
 */
 
+
+// LN_RPN_OPERATOR_DEFINE_xxxx マクロで、RPN トークン種別のテーブルに登録する演算子の実装
 // http://en.cppreference.com/w/cpp/language/expressions
 // http://en.cppreference.com/w/cpp/language/operator_logical
 struct RpnOperator
@@ -701,6 +687,30 @@ void RPNParser::CloseGroup(bool fromArgsSeparator)
 	}
 }
 
+
+//=============================================================================
+// RpnOperand
+//=============================================================================
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+bool RpnOperand::IsFuzzyTrue() const
+{
+	switch (type)
+	{
+	case RpnOperandType::Boolean:	return valueBoolean;
+	case RpnOperandType::Int32:		return valueInt32 != 0;
+	case RpnOperandType::UInt32:	return valueUInt32 != 0;
+	case RpnOperandType::Int64:		return valueInt64 != 0;
+	case RpnOperandType::UInt64:	return valueUInt64 != 0;
+	case RpnOperandType::Float:		return valueFloat != 0;
+	case RpnOperandType::Double:	return valueDouble != 0;
+	default:
+		return false;
+	}
+}
+
 //=============================================================================
 // RpnEvaluator
 //=============================================================================
@@ -719,6 +729,7 @@ bool RpnEvaluator::TryEval(const RPNTokenList* tokenList, DiagnosticsItemSet* di
 	RpnOperand operand, lhs, rhs;
 	for (int iToken = 0; iToken < tokenList->GetCount(); ++iToken)
 	{
+		bool skipPush = false;
 		const RPNToken& token = tokenList->GetAt(iToken);
 		switch (token.GetTokenGroup())
 		{
@@ -749,7 +760,45 @@ bool RpnEvaluator::TryEval(const RPNTokenList* tokenList, DiagnosticsItemSet* di
 
 			case RpnTokenGroup::CondTrue:
 			case RpnTokenGroup::CondFalse:
-				return false;
+				/*  0 ? 1 : 2 の時はまず CondTrue が来た後、オペランドが 0 なので 2 へジャンプする。
+                *  1 ? 1 : 2 の時はまず CondTrue が来た後、ジャンプせずに継続する。
+                *  その後、CondFalse で 2 の後ろへジャンプする。
+                *  
+                * 1 == 2 ? 3 + 4 : 5 + 6 のパース結果は
+                * → 1 2 == ? 3 4 + : 5 6 +
+                *      ? の goto は 8 (5へ)
+                *      : の goto は 11 (終端(配列外)へ)
+                */
+				if (operandStack.GetCount() >= 0)
+				{
+					if (token.GetTokenGroup() == RpnTokenGroup::CondTrue)
+					{
+						operandStack.Pop(&lhs);		// このオペランドは値を見るだけで捨ててしまう
+						if (!lhs.IsFuzzyTrue())
+						{
+							// : の次へ行く
+							iToken = token.CondGoto - 1;
+						}
+						else
+						{
+							// ? の次へ行く (特に何もしない)
+						}
+					}
+					else // (token.GetTokenGroup() == RpnTokenGroup::CondFalse)
+					{
+						// : の次へ行く
+						iToken = token.CondGoto - 1;
+					}
+				}
+				else
+				{
+					// Error: 引数が足りない
+					m_diag->Report(DiagnosticsCode::RpnEvaluator_InvalidOperatorSide);
+					return false;
+				}
+				skipPush = true;	// 新しいオペランドの作成などは行われていないので push する必要は無い
+				break;
+
 			case RpnTokenGroup::FunctionCall:
 				if (operandStack.GetCount() >= token.ElementCount)
 				{
@@ -769,13 +818,15 @@ bool RpnEvaluator::TryEval(const RPNTokenList* tokenList, DiagnosticsItemSet* di
 				break;
 
 			case RpnTokenGroup::Assignment:
-				break;
+				return false;
 			default:
 				m_diag->Report(DiagnosticsCode::RpnEvaluator_UnexpectedToken);
 				return false;
 		}
 
-		operandStack.Push(operand);
+		if (!skipPush) {
+			operandStack.Push(operand);
+		}
 	}
 
 	// 全てのトークンを読み終えると、スタックに1つだけ結果が出ている
@@ -855,25 +906,7 @@ bool RpnEvaluator::MakeOperand(const RPNToken& token, RpnOperand* outOperand)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-bool RpnEvaluator::EvalOperator(const RPNToken& token, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand)
-{
-	switch (token.GetOperatorGroup())
-	{
-	case RpnOperatorGroup::Arithmetic:
-		return EvalOperatorArithmetic(token, lhs, rhs, outOperand);
-	case RpnOperatorGroup::Comparison:
-	case RpnOperatorGroup::Logical:
-	case RpnOperatorGroup::Bitwise:
-	default:
-		// TODO: FatalError
-		return false;
-	}
-}
-
-//-----------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------
-bool RpnEvaluator::EvalOperatorArithmetic(const RPNToken& token, const RpnOperand& lhs_, const RpnOperand& rhs_, RpnOperand* outOperand)
+bool RpnEvaluator::EvalOperator(const RPNToken& token, const RpnOperand& lhs_, const RpnOperand& rhs_, RpnOperand* outOperand)
 {
 	RpnOperand lhs, rhs;
 	ExpandOperands(lhs_, rhs_, &lhs, &rhs);

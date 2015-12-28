@@ -168,7 +168,7 @@ private:
 
 
 
-
+/** RPN 評価に使用するオペランドの型 */
 LN_ENUM(RpnOperandType)
 {
 	Unknown,
@@ -186,6 +186,7 @@ LN_ENUM(RpnOperandType)
 LN_ENUM_REFLECTION(RpnOperandType, Null, Boolean, Int32, UInt32, Int64, UInt64, Float, Double);
 LN_ENUM_DECLARE(RpnOperandType);
 
+/** RPN 評価に使用するオペランド */
 class RpnOperand
 {
 public:
@@ -202,12 +203,6 @@ public:
 		double		valueDouble;
 	};
 
-	//RpnOperand(const RPNToken& rpnToken)
-	//{
-	//	if (rpnToken.Type == RPN_TT_NumericLiteral)
-	//	
-	//}
-
 	void Set(bool value) { valueBoolean = value; type = RpnOperandType::Boolean; }
 	void Set(int32_t value) { valueInt32 = value; type = RpnOperandType::Int32; }
 	void Set(uint32_t value) { valueUInt32 = value; type = RpnOperandType::UInt32; }
@@ -215,17 +210,26 @@ public:
 	void Set(uint64_t value) { valueUInt64 = value; type = RpnOperandType::UInt64; }
 	void Set(float value) { valueFloat = value; type = RpnOperandType::Float; }
 	void Set(double value) { valueDouble = value; type = RpnOperandType::Double; }
+
+	bool IsFuzzyTrue() const;
 };
 
+/**
+	@brief	RPN トークンのリストを評価します。
+*/
 class RpnEvaluator
 {
 public:
+
+	/**
+		@brief	指定された RPN トークンのリストを評価し、値を作成します。
+		@return	成功した場合 true。
+	*/
 	bool TryEval(const RPNTokenList* tokenList, DiagnosticsItemSet* diag, RpnOperand* outValue);
 
 private:
 	bool MakeOperand(const RPNToken& token, RpnOperand* outOperand);
 	bool EvalOperator(const RPNToken& token, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
-	bool EvalOperatorArithmetic(const RPNToken& token, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
 	bool CallFunction(const RPNToken& token, Array<RpnOperand> args, RpnOperand* outOperand);
 	bool EvalOperand(RPNTokenType tokenType, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
 

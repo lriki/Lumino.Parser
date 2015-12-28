@@ -89,6 +89,7 @@ public:
 	void Report(DiagnosticsCode code);
 	void Report(DiagnosticsCode code, StringA option1);
 
+	void ClearItems() { m_items.Clear(); }
 	const Array<DiagnosticsItem>* GetItems() { return &m_items; }
 
 private:
