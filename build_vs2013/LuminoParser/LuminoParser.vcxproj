@@ -14,17 +14,22 @@
     <ClInclude Include="..\..\src\Parser\Common.h" />
     <ClInclude Include="..\..\src\Parser\DiagnosticsManager.h" />
     <ClInclude Include="..\..\src\Parser\Frontend\Cpp\CppLexer.h" />
+    <ClInclude Include="..\..\src\Parser\Frontend\Cpp\Preprocessor.h" />
     <ClInclude Include="..\..\src\Parser\FrontEnd\Lexer.h" />
     <ClInclude Include="..\..\src\Parser\Frontend\RpnParser.h" />
     <ClInclude Include="..\..\src\Parser\GenericParserTypedef.h" />
+    <ClInclude Include="..\..\src\Parser\Internal.h" />
+    <ClInclude Include="..\..\src\Parser\ParserUtils.h" />
     <ClInclude Include="..\..\src\Parser\Token.h" />
     <ClInclude Include="..\..\src\Parser\TokenList.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Parser\DiagnosticsManager.cpp" />
     <ClCompile Include="..\..\src\Parser\Frontend\Cpp\CppLexer.cpp" />
+    <ClCompile Include="..\..\src\Parser\Frontend\Cpp\Preprocessor.cpp" />
     <ClCompile Include="..\..\src\Parser\FrontEnd\Lexer.cpp" />
     <ClCompile Include="..\..\src\Parser\Frontend\RpnParser.cpp" />
+    <ClCompile Include="..\..\src\Parser\ParserUtils.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{180CF223-7284-44AB-8209-12B556C6109D}</ProjectGuid>

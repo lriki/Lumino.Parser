@@ -6,6 +6,7 @@ LN_NAMESPACE_BEGIN
 namespace parser
 {
 typedef char TokenChar;
+typedef GenericString<TokenChar> TokenString;
 class TokenList;
 typedef RefPtr<TokenList> TokenListPtr;
 
@@ -26,19 +27,26 @@ LN_ENUM_FLAGS_DECLARE(AlphaNumTypeFlags);
 /** 基本的なトークン種別 (言語間共通) */
 LN_ENUM(CommonTokenType)
 {
-	Unknown = 0,			/** 共通種別としては分類されない */
-	SpaceSequence,			/** 空白並び */
-	NewLine,				/** 改行 ("\r" "\n" "\r\n" のいずれか。並びではない。"\r\n\r\n" は2つの NewLine トークンとなる) */
-	Identifier,				/** 識別子 */
-	Keyword,				/** キーワード */
-	Operator,				/** 演算子 */
-	ArithmeticLiteral,		/** 算術型リテラル (整数、小数。C言語の char も算術型) */
-	StringLiteral,			/** 文字列 */
-	Comment,				/** コメント */
-	MbsSequence,			/** マルチバイト文字並び */
-	Eof,					/** バッファ EOF */
+	Unknown = 0,			/**< 共通種別としては分類されない */
+	SpaceSequence,			/**< 空白並び (Cの EscapeNewLine も) */
+	NewLine,				/**< 改行 ("\r" "\n" "\r\n" のいずれか。並びではない。"\r\n\r\n" は2つの NewLine トークンとなる) */
+	Identifier,				/**< 識別子 */
+	Keyword,				/**< キーワード */
+	Operator,				/**< 演算子 */
+	ArithmeticLiteral,		/**< 算術型リテラル (整数、小数。C言語の char も算術型) */
+	StringLiteral,			/**< 文字列 */
+	Comment,				/**< コメント */
+	MbsSequence,			/**< マルチバイト文字並び */
+	Eof,					/**< バッファ EOF */
 };
 LN_ENUM_DECLARE(CommonTokenType);
+
+
+enum class ResultState
+{
+	Success = 0,
+	Error = 1,
+};
 
 } // namespace Parser
 LN_NAMESPACE_END

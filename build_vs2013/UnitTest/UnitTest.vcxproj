@@ -85,6 +85,7 @@
     <ClCompile Include="..\..\test\gtest\src\gtest-all.cc" />
     <ClCompile Include="..\..\test\gtest\src\gtest_main.cc" />
     <ClCompile Include="..\..\test\Test_Parser_CppLexer.cpp" />
+    <ClCompile Include="..\..\test\Test_Parser_Preprocessor.cpp" />
     <ClCompile Include="..\..\test\Test_Parser_RpnEvaluator.cpp" />
     <ClCompile Include="..\..\test\Test_Parser_RpnParser.cpp" />
   </ItemGroup>

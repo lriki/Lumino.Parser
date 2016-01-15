@@ -10,6 +10,7 @@
     <ClCompile Include="..\..\test\Test_Parser_CppLexer.cpp" />
     <ClCompile Include="..\..\test\Test_Parser_RpnEvaluator.cpp" />
     <ClCompile Include="..\..\test\Test_Parser_RpnParser.cpp" />
+    <ClCompile Include="..\..\test\Test_Parser_Preprocessor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gtest">

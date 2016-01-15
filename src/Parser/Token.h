@@ -40,11 +40,27 @@ public:
 	const TokenChar* GetEnd() const { return m_end; }
 	int GetLength() const { return m_end - m_begin; }
 
+	bool IsSpaceOrComment() const { return m_commonType == CommonTokenType::SpaceSequence || m_commonType == CommonTokenType::Comment; }
+	bool IsEof() const { return m_commonType == CommonTokenType::Eof; }
+
+	// •¶Žš—ñ‚ªˆê’v‚·‚é‚©
+	bool EqualString(const char* str, int len) const
+	{
+		if (GetLength() != len) return false;
+		return StringTraits::StrNCmp(m_begin, str, len) == 0;
+	}
+
+	GenericString<TokenChar> ToString() const { return GenericString<TokenChar>(GetBegin(), GetLength()); }
+
+	void SetMacroEntity(MacroEntity* macro) { m_macroEntity = macro; }
+	MacroEntity* GetMacroEntity() const { return m_macroEntity; }
+
 private:
 	CommonTokenType		m_commonType = CommonTokenType::Unknown;
 	int					m_langTokenType = 0;
 	const TokenChar*	m_begin = nullptr;
 	const TokenChar*	m_end = nullptr;
+	MacroEntity*		m_macroEntity = nullptr;
 };
 
 #if 0

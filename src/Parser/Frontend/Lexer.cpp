@@ -62,6 +62,8 @@ TokenListPtr Lexer::Tokenize(const ByteBuffer& buffer, DiagnosticsItemSet* diag)
 		if (len == 0) {
 			break;
 		}
+		PollingToken(list->GetLast());
+
 		r.pos += len;
 		m_currentColumn += len;
 
@@ -77,6 +79,13 @@ TokenListPtr Lexer::Tokenize(const ByteBuffer& buffer, DiagnosticsItemSet* diag)
 	list->Add(Token(CommonTokenType::Eof, nullptr, nullptr));
 
 	return list;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+void Lexer::PollingToken(const Token& newToken)
+{
 }
 
 //-----------------------------------------------------------------------------

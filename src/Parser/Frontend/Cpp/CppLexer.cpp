@@ -11,6 +11,20 @@ namespace parser
 // CppLexer
 //=============================================================================
 
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+CppLexer::CppLexer()
+	: m_seqPreProInclude(PreProIncludeSeq::LineHead)
+{
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+CppLexer::~CppLexer()
+{
+}
 
 //-----------------------------------------------------------------------------
 //
@@ -76,6 +90,53 @@ int CppLexer::ReadToken(const Range& buffer, TokenList* list)
 	* プレフィックスと " の間に空白が可能であればまだしも、わざわざ特別扱いして関数を分けると逆に複雑になってしまう。
 	*/
 	return 0;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+void CppLexer::PollingToken(const Token& token)
+{
+	// 何もしていない。改行を探す。
+	if (m_seqPreProInclude == PreProIncludeSeq::Idle)
+	{
+		if (token.GetCommonType() == CommonTokenType::NewLine)
+		{
+			m_seqPreProInclude = PreProIncludeSeq::LineHead;		// 改行が見つかった。行頭状態へ
+		}
+	}
+	// 行頭にいる。# を探す。
+	else if (m_seqPreProInclude == PreProIncludeSeq::LineHead)
+	{
+		if (token.GetCommonType() == CommonTokenType::Operator &&
+			token.GetLangTokenType() == TT_CppOP_Sharp)
+		{
+			m_seqPreProInclude = PreProIncludeSeq::FoundSharp;	// "#" を見つけた
+		}
+		else {
+			m_seqPreProInclude = PreProIncludeSeq::Idle;		// "#" 以外のトークンだった。Idle へ。
+		}
+	}
+	// # まで見つけている。次の "include" を探す。
+	else if (m_seqPreProInclude == PreProIncludeSeq::FoundSharp)
+	{
+		if (token.EqualString("include", 7))
+		{
+			m_seqPreProInclude = PreProIncludeSeq::FoundInclude;	// "include" を見つけた
+		}
+		else
+		{
+			m_seqPreProInclude = PreProIncludeSeq::Idle;		// #" 以外のトークンだった。"include" 以外のプリプロディレクティブ。
+		}
+	}
+	// include ～ 行末
+	else if (m_seqPreProInclude == PreProIncludeSeq::FoundInclude)
+	{
+		if (token.GetCommonType() == CommonTokenType::NewLine)
+		{
+			m_seqPreProInclude = PreProIncludeSeq::LineHead;		// 改行が見つかった。行頭状態へ
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -343,10 +404,20 @@ int CppLexer::IsCharLiteralEnd(const Range& buffer)
 //-----------------------------------------------------------------------------
 int CppLexer::ReadStringLiteral(const Range& buffer, Token* outToken)
 {
-	//const TokenChar chars[] = { '\'', '"', '?', '\\', 'a', 'b', 'f', 'n', 'r', 't', 'v', '\0' };
-	const TokenChar chars[] = { '"', '\0' };	// 分割が目的なので " だけエスケープでOK
 	bool notFoundEndToken;
-	int len = ReadEnclosingTokenHelper(buffer, IsStringLiteralStart, IsStringLiteralEnd, chars, &notFoundEndToken);
+
+	int len = 0;
+	if (m_seqPreProInclude != PreProIncludeSeq::FoundInclude)
+	{
+		//const TokenChar chars[] = { '\'', '"', '?', '\\', 'a', 'b', 'f', 'n', 'r', 't', 'v', '\0' };
+		const TokenChar chars[] = { '"', '\0' };	// 分割が目的なので " だけエスケープでOK
+		len = ReadEnclosingTokenHelper(buffer, IsStringLiteralStart, IsStringLiteralEnd, chars, &notFoundEndToken);
+	}
+	else
+	{
+		// #include 内の場合はこちら。エスケープは無い
+		len = ReadEnclosingTokenHelper(buffer, IsStringLiteralStartInIncludeDirective, IsStringLiteralEndIncludeDirective, nullptr, &notFoundEndToken);
+	}
 
 	if (len > 0)
 	{
@@ -377,6 +448,28 @@ int CppLexer::IsStringLiteralStart(const Range& buffer)
 //
 //-----------------------------------------------------------------------------
 int CppLexer::IsStringLiteralEnd(const Range& buffer)
+{
+	if (buffer.pos[0] == '"') {
+		return 1;
+	}
+	return 0;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+int CppLexer::IsStringLiteralStartInIncludeDirective(const Range& buffer)
+{
+	if (buffer.pos[0] == '"' || buffer.pos[0] == '<') {
+		return 1;
+	}
+	return 0;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+int CppLexer::IsStringLiteralEndIncludeDirective(const Range& buffer)
 {
 	if (buffer.pos[0] == '"') {
 		return 1;
@@ -876,7 +969,7 @@ int CppLexer::ReadEscapeNewLine(const Range& buffer, Token* outToken)
 {
 	int len = IsEscapeNewLine(buffer);
 	if (len > 0) {
-		*outToken = Token(CommonTokenType::Unknown, buffer.pos, buffer.pos + len, TT_EscapeNewLine);
+		*outToken = Token(CommonTokenType::SpaceSequence, buffer.pos, buffer.pos + len, TT_EscapeNewLine);
 		return len;
 	}
 	return 0;

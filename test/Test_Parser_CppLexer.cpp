@@ -147,12 +147,27 @@ TEST_F(Test_Parser_CppLexer, Basic)
 		ASSERT_EQ(CommonTokenType::Eof, tokens->GetAt(3).GetCommonType());
 	}
 
+	// <Test> プリプロセッサ
+	{
+		CppLexer lex;
+		auto tokens = lex.Tokenize("#include <stdio.h>", &diag);
+		ASSERT_EQ(CommonTokenType::Operator, tokens->GetAt(0).GetCommonType());
+		ASSERT_EQ(CommonTokenType::Identifier, tokens->GetAt(1).GetCommonType());
+		ASSERT_EQ(CommonTokenType::SpaceSequence, tokens->GetAt(2).GetCommonType());
+		ASSERT_EQ(CommonTokenType::StringLiteral , tokens->GetAt(3).GetCommonType());
+		ASSERT_EQ(CommonTokenType::Eof, tokens->GetAt(4).GetCommonType());
+	}
+
 	{
 		//ByteBuffer buf("int a = 0;");
 		//CppLexer lex;
 		//auto tokens = lex.Tokenize(buf);
 		//ASSERT_EQ(8, tokens->GetCount());
 	}
+
+//#define BBB AAA
+//#define AAA 1
+//	printf("%d\n", BBB);
 }
 
 //-----------------------------------------------------------------------------

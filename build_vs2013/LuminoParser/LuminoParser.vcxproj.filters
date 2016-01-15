@@ -36,6 +36,15 @@
     <ClInclude Include="..\..\src\Parser\Frontend\RpnParser.h">
       <Filter>Parser\Frontend</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Parser\Frontend\Cpp\Preprocessor.h">
+      <Filter>Parser\Frontend\Cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\ParserUtils.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\Internal.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Parser\FrontEnd\Lexer.cpp">
@@ -49,6 +58,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Parser\Frontend\RpnParser.cpp">
       <Filter>Parser\Frontend</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\Frontend\Cpp\Preprocessor.cpp">
+      <Filter>Parser\Frontend\Cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\ParserUtils.cpp">
+      <Filter>Parser</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

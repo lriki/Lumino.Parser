@@ -1,12 +1,18 @@
 
+#pragma once
 #include "Common.h"
-
-#define LN_RESULT_CALL(x) { ResultState r = (x); if (r == ResultState::Error) { return r; } }
+#include "TokenList.h"
 
 LN_NAMESPACE_BEGIN
 namespace parser
 {
+
+class ParserUtils
+{
+public:
+
+};
+
 } // namespace Parser
 LN_NAMESPACE_END
-
 

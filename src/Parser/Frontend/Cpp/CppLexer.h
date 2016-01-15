@@ -185,6 +185,7 @@ enum CppTokenType
 
 /**
 	@brief
+	@note	#include は特別扱いする。<> で囲まれたファイルパスは文字列リテラル扱いする。
 */
 class CppLexer
 	: public Lexer
@@ -192,8 +193,12 @@ class CppLexer
 public:
 	typedef int(TokenCheckCallback)(const Range& buffer);
 
+	CppLexer();
+	virtual ~CppLexer();
 
 	virtual int ReadToken(const Range& buffer, TokenList* list) override;
+	virtual void PollingToken(const Token& newToken) override;
+
 
 	static int IsSpaceChar(const Range& r);
 	static int ReadSpaceSequence(const Range& buffer, Token* outToken);
@@ -209,9 +214,11 @@ public:
 	static int IsCharLiteralEnd(const Range& buffer);
 	//static int IsAnyChar(const Range& buffer, const TokenChar* chars, int count);
 
-	static int ReadStringLiteral(const Range& buffer, Token* outToken);
+	int ReadStringLiteral(const Range& buffer, Token* outToken);
 	static int IsStringLiteralStart(const Range& buffer);
 	static int IsStringLiteralEnd(const Range& buffer);
+	static int IsStringLiteralStartInIncludeDirective(const Range& buffer);
+	static int IsStringLiteralEndIncludeDirective(const Range& buffer);
 
 	static int ReadIdentifier(const Range& buffer, Token* outToken);
 	static int IsIdentifierStart(const Range& buffer);
@@ -235,6 +242,18 @@ public:
 
 	static int ReadEscapeNewLine(const Range& buffer, Token* outToken);
 	static int IsEscapeNewLine(const Range& buffer);
+
+private:
+	// #include の検索シーケンス
+	enum class PreProIncludeSeq
+	{
+		Idle = 0,		// 何もしていない
+		LineHead,		// 行頭である。または初期状態
+		FoundSharp,		// "#" を見つけた
+		FoundInclude,	// "include" を見つけた
+	};
+
+	PreProIncludeSeq	m_seqPreProInclude;
 };
 
 } // namespace Parser

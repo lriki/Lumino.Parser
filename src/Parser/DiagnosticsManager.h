@@ -5,6 +5,7 @@
 LN_NAMESPACE_BEGIN
 namespace parser
 {
+
 enum class DiagnosticsCode
 {
 	Severity_Note		= 0x00000000,
@@ -25,6 +26,10 @@ enum class DiagnosticsCode
 	RpnEvaluator_InvalidOperatorSide		= Severity_Error | RpnEvaluatorGroup | 5,	/**< 演算子の辺に対するオペランドが足りません。*/
 	RpnEvaluator_InvalidNumericType			= Severity_Error | RpnEvaluatorGroup | 6,	/**< 無効な数値型のトークンが入力されました。*/
 	RpnEvaluator_OperatorInvalidType		= Severity_Error | RpnEvaluatorGroup | 7,	/**< 演算子の型に無効な型({0})のオペランドが指定されています。*/
+
+	PreprocessorGroup = 0x00030000,
+	Preprocessor_UnexpectedDirectiveToken	= Severity_Error | PreprocessorGroup | 1,	/**< 予期しないプリプロセッサディレクティブトークンが見つかりました。{0} */
+	Preprocessor_SyntaxError				= Severity_Error | PreprocessorGroup | 2,	/**< プリプロセッサディレクティブの構文エラーです。*/
 };
 
 enum class SeverityLevel
@@ -72,7 +77,7 @@ private:
 };
 
 /**
-	@brief
+	@brief	ファイル1つ単位をグループ化したもの
 */
 class DiagnosticsItemSet
 {

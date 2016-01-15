@@ -24,6 +24,7 @@ public:
 	TokenListPtr Tokenize(const ByteBuffer& buffer, DiagnosticsItemSet* diag);
 
 	virtual int ReadToken(const Range& buffer, TokenList* list) = 0;
+	virtual void PollingToken(const Token& newToken);
 
 	static AlphaNumTypeFlags GetAlphaNumType(TokenChar ch);
 
