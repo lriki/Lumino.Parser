@@ -6,10 +6,23 @@ class Test_Parser_RPNParser : public ::testing::Test
 protected:
 	virtual void SetUp() {}
 	virtual void TearDown() {}
-};
 
-//typedef RefPtr< Parser::TokenList<TCHAR> >				TokenListPtr;
-//typedef RefPtr< ArrayList< Parser::RPNToken<TCHAR> > >	RPNTokenListPtr;
+
+	ByteBuffer m_buffer;
+	CppLexer m_lex;
+	DiagnosticsItemSet m_diag;
+	RpnParser m_parser;
+
+	const RpnTokenList* Parse(const char* code)
+	{
+		m_diag.ClearItems();
+		m_buffer = ByteBuffer(code);
+		auto tokens = m_lex.Tokenize(m_buffer, &m_diag);
+		m_parser.ParseCppConstExpression2(tokens->cbegin(), tokens->cend(), &m_diag);
+		LN_THROW(m_diag.GetItems()->IsEmpty(), InvalidOperationException);
+		return m_parser.GetTokenList();
+	}
+};
 
 //-----------------------------------------------------------------------------
 TEST_F(Test_Parser_RPNParser, Parse)
@@ -17,16 +30,9 @@ TEST_F(Test_Parser_RPNParser, Parse)
 	//int a = (1 == 2 ? 3 + 4 : 5 + 6);					// 11
 	//int b = (0 ?     1 ? 1 : 2     :     1 ? 3 : 4);	// 3
 
-	DiagnosticsItemSet diag;
-	CppLexer lex;
-
 	// <Test> •’Ê‚É
 	{
-		DiagnosticsItemSet diag;
-		auto tokens = lex.Tokenize("1 + 2", &diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &diag);
-		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
-
+		auto rpnTokens = Parse("1 + 2");
 		ASSERT_EQ(4, rpnTokens->GetCount());
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
@@ -35,11 +41,7 @@ TEST_F(Test_Parser_RPNParser, Parse)
 	}
 	// <Test> —Dæ‡˜
 	{
-		DiagnosticsItemSet diag;
-		auto tokens = lex.Tokenize("1 + 2 * 3", &diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &diag);
-		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
-
+		auto rpnTokens = Parse("1 + 2 * 3");
 		ASSERT_EQ(6, rpnTokens->GetCount());
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
@@ -50,11 +52,7 @@ TEST_F(Test_Parser_RPNParser, Parse)
 	}
 	// <Test> —Dæ‡˜
 	{
-		DiagnosticsItemSet diag;
-		auto tokens = lex.Tokenize("1 * 2 + 3", &diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &diag);
-		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
-
+		auto rpnTokens = Parse("1 * 2 + 3");
 		ASSERT_EQ(6, rpnTokens->GetCount());
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
@@ -65,11 +63,7 @@ TEST_F(Test_Parser_RPNParser, Parse)
 	}
 	// <Test> Š‡ŒÊ
 	{
-		DiagnosticsItemSet diag;
-		auto tokens = lex.Tokenize("1 * (2 + 3)", &diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &diag);
-		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
-
+		auto rpnTokens = Parse("1 * (2 + 3)");
 		ASSERT_EQ(6, rpnTokens->GetCount());
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
@@ -80,11 +74,7 @@ TEST_F(Test_Parser_RPNParser, Parse)
 	}
 	// <Test> ’P€‰‰ŽZŽq
 	{
-		DiagnosticsItemSet diag;
-		auto tokens = lex.Tokenize("1 + -2", &diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &diag);
-		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
-
+		auto rpnTokens = Parse("1 + -2");
 		ASSERT_EQ(5, rpnTokens->GetCount());
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
@@ -94,11 +84,7 @@ TEST_F(Test_Parser_RPNParser, Parse)
 	}
 	// <Test> ðŒ‰‰ŽZŽq
 	{
-		DiagnosticsItemSet diag;
-		auto tokens = lex.Tokenize("1 != 2 ? 3 + 4 : 5 + 6", &diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &diag);
-		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
-
+		auto rpnTokens = Parse("1 != 2 ? 3 + 4 : 5 + 6");
 		ASSERT_EQ(12, rpnTokens->GetCount());
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);
@@ -115,11 +101,7 @@ TEST_F(Test_Parser_RPNParser, Parse)
 	}
 	// <Test> ðŒ‰‰ŽZŽq
 	{
-		DiagnosticsItemSet diag;
-		auto tokens = lex.Tokenize("1 ? (5 ? 6 : 7) : (3 ? 4 : (5 ? 6 : 7))", &diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &diag);
-		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
-
+		auto rpnTokens = Parse("1 ? (5 ? 6 : 7) : (3 ? 4 : (5 ? 6 : 7))");
 		ASSERT_EQ(18, rpnTokens->GetCount());
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type); 
 		ASSERT_EQ(RPN_TT_OP_CondTrue, rpnTokens->GetAt(1).Type);	ASSERT_EQ(8, rpnTokens->GetAt(1).CondGoto);
@@ -155,11 +137,7 @@ TEST_F(Test_Parser_RPNParser, Parse)
 
 	// <Test> ŠÖ”ŒÄ‚Ño‚µ
 	{
-		DiagnosticsItemSet diag;
-		auto tokens = lex.Tokenize("Func(1)", &diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &diag);
-		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
-
+		auto rpnTokens = Parse("Func(1)");
 		ASSERT_EQ(3, rpnTokens->GetCount());
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
 		ASSERT_EQ(RPN_TT_OP_FuncCall, rpnTokens->GetAt(1).Type);
@@ -167,11 +145,7 @@ TEST_F(Test_Parser_RPNParser, Parse)
 	}
 	// <Test> ŠÖ”ŒÄ‚Ño‚µ (•¡”‚Ìˆø”)
 	{
-		DiagnosticsItemSet diag;
-		auto tokens = lex.Tokenize("F1(1+1, F2(2*2) + 2)", &diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &diag);
-		ASSERT_EQ(true, diag.GetItems()->IsEmpty());
-
+		auto rpnTokens = Parse("F1(1+1, F2(2*2) + 2)");
 		ASSERT_EQ(11, rpnTokens->GetCount());
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(0).Type);
 		ASSERT_EQ(RPN_TT_NumericLitaral_Int32, rpnTokens->GetAt(1).Type);

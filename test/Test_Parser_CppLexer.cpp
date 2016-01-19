@@ -133,7 +133,7 @@ TEST_F(Test_Parser_CppLexer, Basic)
 	{
 		CppLexer lex;
 		auto tokens = lex.Tokenize("\\\n", &diag);
-		ASSERT_EQ(CommonTokenType::Unknown, tokens->GetAt(0).GetCommonType()); ASSERT_EQ(TT_EscapeNewLine, tokens->GetAt(0).GetLangTokenType());
+		ASSERT_EQ(CommonTokenType::SpaceSequence, tokens->GetAt(0).GetCommonType()); ASSERT_EQ(TT_EscapeNewLine, tokens->GetAt(0).GetLangTokenType());
 		ASSERT_EQ(CommonTokenType::Eof, tokens->GetAt(1).GetCommonType());
 	}
 	// マルチバイト文字並び
@@ -156,6 +156,16 @@ TEST_F(Test_Parser_CppLexer, Basic)
 		ASSERT_EQ(CommonTokenType::SpaceSequence, tokens->GetAt(2).GetCommonType());
 		ASSERT_EQ(CommonTokenType::StringLiteral , tokens->GetAt(3).GetCommonType());
 		ASSERT_EQ(CommonTokenType::Eof, tokens->GetAt(4).GetCommonType());
+	}
+	// <Test> キーワード
+	{
+		CppLexer lex;
+		auto tokens = lex.Tokenize("if", &diag);
+		ASSERT_EQ(CommonTokenType::Keyword, tokens->GetAt(0).GetCommonType());
+
+		// 先頭が部分的にキーワードでも勘違いしないこと
+		auto tokens2 = lex.Tokenize("ifdef", &diag);
+		ASSERT_EQ(CommonTokenType::Identifier, tokens2->GetAt(0).GetCommonType());
 	}
 
 	{

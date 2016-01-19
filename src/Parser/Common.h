@@ -7,10 +7,14 @@ namespace parser
 {
 typedef char TokenChar;
 typedef GenericString<TokenChar> TokenString;
+typedef GenericStringRef<TokenChar> TokenStringRef;
+
 class TokenList;
 typedef RefPtr<TokenList> TokenListPtr;
 
 class DiagnosticsItemSet;
+
+class MacroEntity;
 
 /** ASCII コードの文字種別 */
 LN_ENUM_FLAGS(AlphaNumTypeFlags)
@@ -28,7 +32,7 @@ LN_ENUM_FLAGS_DECLARE(AlphaNumTypeFlags);
 LN_ENUM(CommonTokenType)
 {
 	Unknown = 0,			/**< 共通種別としては分類されない */
-	SpaceSequence,			/**< 空白並び (Cの EscapeNewLine も) */
+	SpaceSequence,			/**< 空白並び (Cの EscapeNewLine も含む) */
 	NewLine,				/**< 改行 ("\r" "\n" "\r\n" のいずれか。並びではない。"\r\n\r\n" は2つの NewLine トークンとなる) */
 	Identifier,				/**< 識別子 */
 	Keyword,				/**< キーワード */

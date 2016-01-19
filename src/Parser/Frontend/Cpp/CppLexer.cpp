@@ -261,14 +261,24 @@ int CppLexer::IsKeyword(const Range& buffer, int* langTokenType)
 	};
 
 	const int len = LN_ARRAY_SIZE_OF(wordList);
+	int keyLen = 0;
+	int type = 0;
 	for (int i = 0; i < len; ++i) 
 	{
 		if (wordList[i].word[0] == buffer.pos[0] &&		// まずは先頭文字を調べて
 			StringTraits::StrNCmp(wordList[i].word, buffer.pos, wordList[i].length) == 0)	// 先頭が一致したら残りを調べる
-		{
-			*langTokenType = (int)wordList[i].type;
-			return wordList[i].length;
+		{ 
+			type = (int)wordList[i].type;
+			keyLen = wordList[i].length;
+			break;
 		}
+	}
+
+	// 本当にキーワードが識別子として完結している？
+	if (keyLen > 0 && IsIdentifierLetter(Range(buffer.pos + keyLen, buffer.end)) == 0)
+	{
+		*langTokenType = type;
+		return keyLen;
 	}
 	return 0;
 }

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include "../../Common.h"
 #include "../../TokenList.h"
+#include "../RpnParser.h"
 
 LN_NAMESPACE_BEGIN
 namespace parser
@@ -15,7 +16,7 @@ public:
 	IdentifierMap()
 		: m_table1(nullptr)
 	{
-		m_table1 = LN_NEW ItemArray[MaxKeyFirstCount * MaxKeyLastCount * MaxKeyLength];
+		m_table1 = LN_NEW Item[MaxKeyFirstCount * MaxKeyLastCount * MaxKeyLength];
 	}
 
 	virtual ~IdentifierMap()
@@ -35,26 +36,38 @@ public:
 			if (item != nullptr)
 			{
 				memcpy(item->key.data(), keyBegin, len);
-				item->value = value;
+				item->item = value;
 				return;
 			}
 		}
 
-		StringA key(keyBegin, len);
+		TokenString key(keyBegin, len);
 		m_table2[key] = value;
 	}
 
-	bool Find(const TokenChar* keyBegin, const TokenChar* keyEnd, TValue* outValue)
+	bool Find(const TokenChar* keyBegin, const TokenChar* keyEnd, TValue* outValue, CaseSensitivity cs)
 	{
+		int len = keyEnd - keyBegin;
 		if (len < MaxKeyLength)
 		{
 			Item* item = GetItem(*keyBegin, *(keyEnd - 1), len);
-			if (item != nullptr)
+			if (item != nullptr && item->key[0] != '\0')
 			{
-				if (StringTraits::Compare(keyBegin)
+				if (StringTraits::Compare(keyBegin, item->key.data(), len, cs) == 0)
+				{
+					*outValue = item->item;
+					return true;
+				}
 			}
 		}
 
+		auto itr = m_table2.find(TokenString(keyBegin, keyEnd - keyBegin));	// TODO: StringRef で検索できるように
+		if (itr != m_table2.end())
+		{
+			*outValue = itr->second;
+			return true;
+		}
+		return false;
 	}
 
 public:
@@ -78,15 +91,17 @@ public:
 
 	struct Item
 	{
-		std::array<TokenChar, MaxKeyLength>	key = {};
+		std::array<TokenChar, MaxKeyLength>	key = {};	// [0] が '\0' ならInsertされていないということ
 		TValue								item;
 	};
 
-	typedef Array<Item>	ItemArray;
+	//typedef Array<Item>	ItemArray;
 
-	ItemArray*					m_table1;	// [先頭文字][終端文字][文字数]
-	std::unordered_map<StringA, Item>	m_table2;
+	Item*					m_table1;	// [先頭文字][終端文字][文字数]
+	//std::unordered_map<StringA, Item>	m_table2;
+	std::map<TokenString, TValue>	m_table2;
 
+	// 先頭文字、終端文字、長さから Item を取得する。名前が一致するかは改めてチェックすること。
 	Item* GetItem(TokenChar first, TokenChar last, int len)
 	{
 		static int charIndexTable[128] =
@@ -117,6 +132,8 @@ class MacroEntity
 public:
 	TokenString	name;
 	TokenString	replacementContentString;	// 置換要素を文字列で並べたもの (完全一致の確認で使う。前後の空白は消しておく)
+
+	bool		undef = false;
 };
 
 class MacroMap
@@ -125,6 +142,8 @@ public:
 	MacroEntity* Insert(const Token& name, const TokenChar* replacementBegin, const TokenChar* replacementEnd);
 
 	MacroEntity* Find(const Token& name);
+
+	bool IsDefined(const Token& name);
 
 private:
 	Array<MacroEntity>			m_allMacroList;	// 過去に定義された全てのマクロ
@@ -138,7 +157,10 @@ class RawReferenceMap
 
 // プリプロセスしたファイル情報。
 // .c か .h かは問わない。
-// トークンリストは保持しないので注意。
+// ×トークンリストは保持しないので注意。
+/*
+	トークンリストも保持する。UIColors.h とか。
+*/
 class PreprocessedFileCacheItem
 {
 public:
@@ -169,7 +191,10 @@ private:
 
 	ResultState PollingDirectiveLine(Token* lineBegin, Token* lineEnd);
 
+	bool IsInValidSection() const;
+
 	//TokenList::iterator GetNextGenericToken(TokenList::iterator pos);
+
 
 
 	enum class DirectiveSec
@@ -180,11 +205,33 @@ private:
 		FindLineEnd,	// "#" を見つけた
 	};
 
+	// #if ～ #endif までの判定状態
+	enum class ConditionalSectionState
+	{
+		None,			// 判定前、セクション外
+		Valid,			// 有効判定グループ内
+		Invalid,		// 無効判定グループ内
+		Skip,			// 有効無効判定終了後、#endifまでskip可能
+	};
+
+	// #if ～ #endif までの情報
+	struct ConditionalSection
+	{
+		ConditionalSectionState	state = ConditionalSectionState::None;	// #if～#endif までの現在の判定状態
+		bool					elseProcessed = false;					// #else受付後はtrue(#else～#else防止の為)
+	};
+
 	TokenList*					m_tokenList;
 	PreprocessedFileCacheItem*	m_fileCache;
 	DiagnosticsItemSet*			m_diag;
+
 	DirectiveSec				m_seqDirective;
+	Stack<ConditionalSection>	m_conditionalSectionStack;
 	Token*						m_preproLineHead;	// # の次のトークンを指している
+
+	TokenList					m_preproExprTokenList;	// 前処理定数式のトークンを展開する
+	RpnParser					m_rpnParser;
+	RpnEvaluator				m_rpnEvaluator;
 };
 
 } // namespace Parser

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gtest/gtest.h>
+#include <memory>
 #include <LuminoCore.h>
 #include <Lumino/Testing/TestUtils.h>
 #include "../src/Parser/Frontend/Cpp/CppLexer.h"

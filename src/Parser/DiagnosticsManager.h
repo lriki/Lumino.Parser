@@ -30,6 +30,10 @@ enum class DiagnosticsCode
 	PreprocessorGroup = 0x00030000,
 	Preprocessor_UnexpectedDirectiveToken	= Severity_Error | PreprocessorGroup | 1,	/**< 予期しないプリプロセッサディレクティブトークンが見つかりました。{0} */
 	Preprocessor_SyntaxError				= Severity_Error | PreprocessorGroup | 2,	/**< プリプロセッサディレクティブの構文エラーです。*/
+	Preprocessor_InvalidConstantExpression	= Severity_Error | PreprocessorGroup | 4,	/**< 整数定数式が無効です。*//* C1017 invalid integer constant expression */
+	Preprocessor_UnexpectedElse				= Severity_Error | PreprocessorGroup | 5,	/**< 予期しない #else が見つかりました。*/
+	Preprocessor_UnexpectedEndif			= Severity_Error | PreprocessorGroup | 6,	/**< 予期しない #endif が見つかりました。*/
+	Preprocessor_ExpectedDefinedId			= Severity_Error | PreprocessorGroup | 7,	/**< defined の後に識別子が必要です。*//* C2003 expected 'defined id' */
 };
 
 enum class SeverityLevel
@@ -104,6 +108,11 @@ private:
 	Array<DiagnosticsItem>	m_items;
 };
 
+#define LN_DIAG_REPORT_ERROR(x, errorCode, ...)	\
+	if (!(x)) { \
+		m_diag->Report(errorCode); \
+		return ResultState::Error; \
+	}
 
 } // namespace Parser
 LN_NAMESPACE_END

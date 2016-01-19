@@ -17,6 +17,17 @@ public:
 	{
 		const TokenChar* pos;
 		const TokenChar* end;
+
+		Range()
+		{
+
+		}
+
+		Range(const TokenChar* begin, const TokenChar* end_)
+		{
+			pos = begin;
+			end = end_;
+		}
 	};
 
 public:

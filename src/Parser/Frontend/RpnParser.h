@@ -9,7 +9,7 @@
 LN_NAMESPACE_BEGIN
 namespace parser
 {
-enum RPNTokenType
+enum RpnTokenType
 {
 	RPN_TT_Unknown = 0,
 
@@ -101,10 +101,10 @@ enum OpeatorAssociation
 /**
 	@brief	逆ポーランド式を構成する要素です。
 */
-class RPNToken
+class RpnToken
 {
 public:
-	RPNToken()
+	RpnToken()
 	{
 		SourceToken = NULL;
 		CondGoto = 0;
@@ -119,7 +119,7 @@ public:
 	bool IsUnary() const;
 
 public:
-	RPNTokenType		Type;
+	RpnTokenType		Type;
 	int					Precedence;		///< 優先順位
 	OpeatorAssociation	Association;	///< 結合方向
 	const Token*		SourceToken;
@@ -131,39 +131,46 @@ public:
 
 };
 
-class RPNTokenList
+class RpnTokenList
 	: public RefObject
-	, public Collection<RPNToken>
+	, public Collection<RpnToken>
 {
 };
 
-class RPNParser
+/*
+	メモリ効率のため、再利用される
+*/
+class RpnParser
 {
 public:
 	typedef Collection<Token>::const_iterator Position;
 
 public:
 	// TODO: RefPtr
-	static RefPtr<RPNTokenList> ParseCppConstExpression(Position exprBegin, Position exprEnd, DiagnosticsItemSet* diag);
+	//static RefPtr<RPNTokenList> ParseCppConstExpression(Position exprBegin, Position exprEnd, DiagnosticsItemSet* diag);
+
+	ResultState ParseCppConstExpression2(Position exprBegin, Position exprEnd, DiagnosticsItemSet* diag);
+	const RpnTokenList* GetTokenList() const { return m_rpnTokenList; }
 
 private:
+	void Initialize(DiagnosticsItemSet* diag);
 	void TokenizeCppConst(Position exprBegin, Position exprEnd);
 	void Parse();
-	void PushOpStack(RPNToken* token);
-	RPNToken* PopOpStackGroupEnd(bool fromArgsSeparator);
-	RPNToken* PopOpStackCondFalse();
+	void PushOpStack(RpnToken* token);
+	RpnToken* PopOpStackGroupEnd(bool fromArgsSeparator);
+	RpnToken* PopOpStackCondFalse();
 	void CloseGroup(bool fromArgsSeparator);
 
 private:
-	RefPtr<RPNTokenList>	m_tokenList;
-	RefPtr<RPNTokenList>	m_rpnTokenList;
+	RefPtr<RpnTokenList>	m_tokenList;
+	RefPtr<RpnTokenList>	m_rpnTokenList;
 	DiagnosticsItemSet*		m_diag;
 
-	Array<RPNToken*>		m_tmpRPNTokenList;
-	Stack<RPNToken*>		m_opStack;			// 演算子用の作業スタック
-	Stack<RPNToken*>		m_condStack;		// 条件演算子用の作業スタック。: を格納していく
-	Stack<RPNToken*>		m_groupStack;		// () の作業スタック。( または FuncCall を格納していく
-	RPNToken*				m_lastToken;
+	Array<RpnToken*>		m_tmpRPNTokenList;
+	Stack<RpnToken*>		m_opStack;			// 演算子用の作業スタック
+	Stack<RpnToken*>		m_condStack;		// 条件演算子用の作業スタック。: を格納していく
+	Stack<RpnToken*>		m_groupStack;		// () の作業スタック。( または FuncCall を格納していく
+	RpnToken*				m_lastToken;
 };
 
 
@@ -211,6 +218,9 @@ public:
 	void Set(float value) { valueFloat = value; type = RpnOperandType::Float; }
 	void Set(double value) { valueDouble = value; type = RpnOperandType::Double; }
 
+	/** 整数型であるか (Boolean は含まない) */
+	bool IsIntager() const;
+	
 	bool IsFuzzyTrue() const;
 };
 
@@ -225,13 +235,13 @@ public:
 		@brief	指定された RPN トークンのリストを評価し、値を作成します。
 		@return	成功した場合 true。
 	*/
-	bool TryEval(const RPNTokenList* tokenList, DiagnosticsItemSet* diag, RpnOperand* outValue);
+	ResultState TryEval(const RpnTokenList* tokenList, DiagnosticsItemSet* diag, RpnOperand* outValue);
 
 private:
-	bool MakeOperand(const RPNToken& token, RpnOperand* outOperand);
-	bool EvalOperator(const RPNToken& token, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
-	bool CallFunction(const RPNToken& token, Array<RpnOperand> args, RpnOperand* outOperand);
-	bool EvalOperand(RPNTokenType tokenType, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
+	bool MakeOperand(const RpnToken& token, RpnOperand* outOperand);
+	bool EvalOperator(const RpnToken& token, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
+	bool CallFunction(const RpnToken& token, Array<RpnOperand> args, RpnOperand* outOperand);
+	bool EvalOperand(RpnTokenType tokenType, const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outOperand);
 
 	static RpnOperandType ExpandOperands(const RpnOperand& lhs, const RpnOperand& rhs, RpnOperand* outlhs, RpnOperand* outrhs);
 	static void CastOperand(RpnOperand* operand, RpnOperandType to);

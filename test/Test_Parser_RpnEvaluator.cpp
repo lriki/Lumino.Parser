@@ -13,6 +13,7 @@ protected:
 	CppLexer m_lex;
 	DiagnosticsItemSet m_diag;
 	RpnEvaluator m_eval;
+	RpnParser m_parser;
 	RpnOperand m_value;
 	void Eval(const char* exp)
 	{
@@ -26,8 +27,8 @@ protected:
 		m_diag.ClearItems();
 		m_buffer = ByteBuffer(exp);
 		auto tokens = m_lex.Tokenize(m_buffer, &m_diag);
-		auto rpnTokens = RPNParser::ParseCppConstExpression(tokens->cbegin(), tokens->cend(), &m_diag);
-		return m_eval.TryEval(rpnTokens, &m_diag, &m_value);
+		m_parser.ParseCppConstExpression2(tokens->cbegin(), tokens->cend(), &m_diag);
+		return m_eval.TryEval(m_parser.GetTokenList(), &m_diag, &m_value) == ResultState::Success;
 	}
 };
 

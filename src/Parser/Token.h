@@ -47,13 +47,26 @@ public:
 	bool EqualString(const char* str, int len) const
 	{
 		if (GetLength() != len) return false;
-		return StringTraits::StrNCmp(m_begin, str, len) == 0;
+		return StringTraits::StrNCmp(m_begin, str, len) == 0;	// TODO: Case
+	}
+
+	// 文字が一致するか
+	bool EqualChar(char ch) const
+	{
+		if (GetLength() != 1) return false;
+		return *m_begin == ch;	// TODO: Case
 	}
 
 	GenericString<TokenChar> ToString() const { return GenericString<TokenChar>(GetBegin(), GetLength()); }
 
+	// トークンがマクロの場合、そのマクロの実体への参照
+	// 実際に使うとしても、マクロ定義がネストしている場合は NULL。
+	// マクロを展開したとき、その中にあるマクロの置換は直近の定義に従う。・・・って言うと、1つずつ検索する方法に統一したほうが良いか・・・？
 	void SetMacroEntity(MacroEntity* macro) { m_macroEntity = macro; }
 	MacroEntity* GetMacroEntity() const { return m_macroEntity; }
+
+	void SetValid(bool valid) { m_valid = valid; }
+	bool IsValid() const { return m_valid; }
 
 private:
 	CommonTokenType		m_commonType = CommonTokenType::Unknown;
@@ -61,6 +74,8 @@ private:
 	const TokenChar*	m_begin = nullptr;
 	const TokenChar*	m_end = nullptr;
 	MacroEntity*		m_macroEntity = nullptr;
+
+	bool				m_valid = true;
 };
 
 #if 0
