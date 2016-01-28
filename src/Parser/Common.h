@@ -9,12 +9,15 @@ typedef char TokenChar;
 typedef GenericString<TokenChar> TokenString;
 typedef GenericStringRef<TokenChar> TokenStringRef;
 
+class TokenBuffer;
 class TokenList;
 typedef RefPtr<TokenList> TokenListPtr;
 
 class DiagnosticsItemSet;
 
 class MacroEntity;
+
+typedef size_t DataLocation;
 
 /** ASCII ƒR[ƒh‚Ì•¶ší•Ê */
 LN_ENUM_FLAGS(AlphaNumTypeFlags)

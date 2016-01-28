@@ -45,6 +45,15 @@
     <ClInclude Include="..\..\src\Parser\Internal.h">
       <Filter>Parser</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Parser\CacheBuffer.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\UnitFile.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Parser\TokenBuffer.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Parser\FrontEnd\Lexer.cpp">
@@ -63,6 +72,12 @@
       <Filter>Parser\Frontend\Cpp</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Parser\ParserUtils.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\UnitFile.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\TokenBuffer.cpp">
       <Filter>Parser</Filter>
     </ClCompile>
   </ItemGroup>

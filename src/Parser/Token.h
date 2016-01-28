@@ -69,10 +69,15 @@ public:
 	bool IsValid() const { return m_valid; }
 
 private:
+	friend class TokenBuffer;
 	CommonTokenType		m_commonType = CommonTokenType::Unknown;
 	int					m_langTokenType = 0;
-	const TokenChar*	m_begin = nullptr;
-	const TokenChar*	m_end = nullptr;
+	const TokenChar*	m_begin = nullptr;	// TODO: ‚¯‚·
+	const TokenChar*	m_end = nullptr;	// TODO: ‚¯‚·
+
+	DataLocation		m_locBegin = 0;
+	DataLocation		m_locEnd = 0;
+
 	MacroEntity*		m_macroEntity = nullptr;
 
 	bool				m_valid = true;

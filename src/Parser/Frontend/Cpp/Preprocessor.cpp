@@ -73,6 +73,31 @@
 	すなわち、キーワード、列挙定数などはまだ存在しない。
 	↓
 	キャスト式不可能。
+
+
+	■ "#if AAA" で AAA が未定義のとき
+		> 16.1
+		> マクロ展開及び defined 単項演算子による全ての置換の実行後、残っている全ての識別子及び
+		> true と false　を除くキーワードを前処理数 0 で置き換えてから、各前処理字句を字句に変換する。
+		↓
+		未定義マクロ (undef されたものも含む) は #if の条件式で使用でき、値は必ず 0 となる。 
+
+	■ マクロ再定義
+		#define CCC 1+1			// オリジナル
+		#define CCC 1+1\s		// OK。前後の空白は許可
+		#define CCC 1 + 1		// NG。(VisualC++では警告)
+		#define CCC 1/＊＊/+1	// NG。(VisualC++では警告)
+
+	■ 置換要素の中に defined があるとき
+		#define HHH 1
+		#define GGG defined(HHH)
+		#if GGG
+
+		未定義動作。VisualStudio では defined として解釈されない。
+		ただ、↑の例は結果 0 でエラーにはならない。しかし、defined を aaa のようなほかの識別子とすると警告が発生する。
+
+		本ライブラリとしては通常の識別子扱いし、defined=0で解釈する。
+		その結果 0(1) という展開結果になるため式の解析でエラーが出ることになる。
 */
 #include "../../Internal.h"
 #include "../../DiagnosticsManager.h"
@@ -84,11 +109,14 @@ LN_NAMESPACE_BEGIN
 namespace parser
 {
 
+static const Token ConstToken_Eof(CommonTokenType::Eof, nullptr, nullptr);
+
 static const TokenChar* ConstToken_0_Buf = "0";
 static const Token ConstToken_0(CommonTokenType::ArithmeticLiteral, ConstToken_0_Buf, ConstToken_0_Buf + 1, TT_NumericLitaralType_Int32);
 
 static const TokenChar* ConstToken_1_Buf = "1";
 static const Token ConstToken_1(CommonTokenType::ArithmeticLiteral, ConstToken_1_Buf, ConstToken_1_Buf + 1, TT_NumericLitaralType_Int32);
+
 
 //=============================================================================
 // MacroMap
@@ -97,11 +125,27 @@ static const Token ConstToken_1(CommonTokenType::ArithmeticLiteral, ConstToken_1
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-MacroEntity* MacroMap::Insert(const Token& name, const TokenChar* replacementBegin, const TokenChar* replacementEnd)
+//void MacroEntity::AppendReplacementToTokenList(TokenList* tokenList)
+//{
+//	for (const Token* pos = replacementBegin; pos < replacementEnd; ++pos)
+//	{
+//		tokenList->Add(*pos);
+//	}
+//}
+
+//=============================================================================
+// MacroMap
+//=============================================================================
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+MacroEntity* MacroMap::Insert(const Token& name, const SourceRange& replacementRange)
 {
 	MacroEntity macro;
 	macro.name = name.ToString();
-	macro.replacementContentString = TokenString(replacementBegin, replacementEnd - replacementBegin);
+	macro.replacementRange = replacementRange;
+	//macro.replacementContentString = TokenString(replacementBegin->GetBegin(), replacementEnd->GetEnd() - replacementBegin->GetBegin());
 
 	m_allMacroList.Add(macro);
 	MacroEntity* m = &m_allMacroList.GetLast();
@@ -124,14 +168,46 @@ MacroEntity* MacroMap::Find(const Token& name)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-bool MacroMap::IsDefined(const Token& name)
+bool MacroMap::IsDefined(const Token& name, MacroEntity** outDefinedMacro)
 {
 	MacroEntity* e = Find(name);
 	if (e != nullptr)
 	{
+		if (outDefinedMacro) { *outDefinedMacro = e; }
 		return !e->undef;
 	}
 	return false;
+}
+
+//=============================================================================
+// Preprocessor
+//=============================================================================
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+SourceRange PreprocessedFileCacheItem::SaveMacroTokens(const Token* begin, const Token* end)
+{
+	SourceRange range;
+	range.begin.loc = m_tokensCache.GetCount();
+	for (const Token* pos = begin; pos < end; ++pos)
+	{
+		m_tokensCache.Add(*pos);
+	}
+	range.end.loc = m_tokensCache.GetCount();
+	m_tokensCache.Add(ConstToken_Eof);	// Eof を入れておくことでオーバーランや m_tokensCache[range.end.loc] へのアクセスに備える
+	return range;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+void PreprocessedFileCacheItem::GetMacroTokens(const SourceRange& range, const Token** outBegin, const Token** outEnd) const
+{
+	assert(outBegin != nullptr);
+	assert(outEnd != nullptr);
+	*outBegin = &m_tokensCache[range.begin.loc];
+	*outEnd = &m_tokensCache[range.end.loc];
 }
 
 //=============================================================================
@@ -240,9 +316,9 @@ ResultState Preprocessor::BuildPreprocessedTokenList(TokenList* tokenList, Prepr
 
 //-----------------------------------------------------------------------------
 // lineBegin は 識別子を指している。#include なら include。
-// lineEnd は NewLine か Eof を指している。
+// lineEnd は NewLine か Eof を指している。間に 行末\がある場合は飛ばされている。
 //-----------------------------------------------------------------------------
-ResultState Preprocessor::PollingDirectiveLine(Token* lineBegin, Token* lineEnd)
+ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 {
 	//---------------------------------------------------------
 	// #define
@@ -250,40 +326,70 @@ ResultState Preprocessor::PollingDirectiveLine(Token* lineBegin, Token* lineEnd)
 	//		:: # define identifier lparen identifier-listopt) replacement-list new-line
 	//		:: # define identifier lparen ... ) replacement-list new-line
 	//		:: # define identifier lparen identifier-list, ... ) replacement-list new-line
-	if (lineBegin->EqualString("define", 6))
+	if (keyword->EqualString("define", 6))
 	{
-		// 次の識別子まで進める
-		lineBegin = ParserUtils::SkipNextSpaceOrComment(lineBegin, lineEnd);
-		if (lineBegin->GetCommonType() != CommonTokenType::Identifier)
+		// 識別子(マクロ名)まで進める
+		Token* macroName = ParserUtils::SkipNextSpaceOrComment(keyword, lineEnd);
+		if (macroName->GetCommonType() != CommonTokenType::Identifier)
 		{
 			// Error: 識別子ではなかった
 			m_diag->Report(DiagnosticsCode::Preprocessor_SyntaxError);
 			return ResultState::Error;
 		}
 
-		// 識別子を取り出しておく
-		Token* ident = lineBegin;
-
 		// スペースを飛ばす
-		lineBegin = ParserUtils::SkipNextSpaceOrComment(lineBegin, lineEnd);
+		Token* parenOrReplacement = ParserUtils::SkipNextSpaceOrComment(keyword, lineEnd);
 
 		// end はスペースがではなくなるまで戻す
-		lineEnd = ParserUtils::SkipPrevSpaceOrComment(lineBegin, lineEnd);
+		lineEnd = ParserUtils::SkipPrevSpaceOrComment(keyword, lineEnd);
+
+		Token* replacementBegin = nullptr;
+		if (parenOrReplacement->GetCommonType() == CommonTokenType::Operator && parenOrReplacement->EqualChar('('))
+		{
+			// 関数形式だった。識別子を仮引数として取り出す。TODO: , とか見てないけど・・・
+			m_funcMacroParams.Clear();
+			Token* pos = parenOrReplacement + 1;
+			for (; pos < lineEnd; ++pos)
+			{
+				if (pos->GetCommonType() == CommonTokenType::Operator && pos->EqualChar(')'))
+				{
+					replacementBegin = ParserUtils::SkipNextSpaceOrComment(pos, lineEnd);
+					break;
+				}
+				else if (pos->GetCommonType() == CommonTokenType::Identifier)
+				{
+					m_funcMacroParams.Add(pos);
+				}
+				else if (pos->GetCommonType() == CommonTokenType::Operator && pos->GetLangTokenType() == TT_CppOP_Ellipsis)
+				{
+					m_funcMacroParams.Add(pos);	// "..."
+				}
+			}
+
+			// TODO: ) error
+		}
+		else
+		{
+			replacementBegin = parenOrReplacement;
+		}
+
+		// 定義内容を入力トークンリストから取り出して保持する
+		SourceRange range = m_fileCache->SaveMacroTokens(keyword, lineEnd + 1);
 
 		// マクロ登録
 		// TODO: マクロの上書き確認
-		m_fileCache->outputMacroMap.Insert(*ident, lineBegin->GetBegin(), lineEnd->GetEnd());
+		m_fileCache->outputMacroMap.Insert(*macroName, range);
 	}
 	//---------------------------------------------------------
 	// #if
 	//		:: # if constant-expression new-line groupopt
-	else if (lineBegin->EqualString("if", 2))
+	else if (keyword->EqualString("if", 2))
 	{
 		// 新しいセクションを開始する
 		m_conditionalSectionStack.Push(ConditionalSection());
 
 		// スペースを飛ばす
-		Token* pos = ParserUtils::SkipNextSpaceOrComment(lineBegin, lineEnd);
+		Token* pos = ParserUtils::SkipNextSpaceOrComment(keyword, lineEnd);
 
 		// Error: 定数式が無かった
 		LN_DIAG_REPORT_ERROR(pos < lineEnd, DiagnosticsCode::Preprocessor_InvalidConstantExpression);
@@ -293,43 +399,71 @@ ResultState Preprocessor::PollingDirectiveLine(Token* lineBegin, Token* lineEnd)
 		m_preproExprTokenList.Reserve(lineEnd - pos);		// マクロ展開で増えることはあるが、とりあえずこれだけあらかじめ確保しておく
 		for (; pos < lineEnd; )
 		{
-			// defined ならその処理へ
-			if (pos->GetCommonType() == CommonTokenType::Identifier &&
-				pos->EqualString("defined", 7))
+			if (pos->GetCommonType() == CommonTokenType::Identifier)
 			{
-				Token* ident = nullptr;
+				MacroEntity* definedMacro;
 
-				// スペースを飛ばす
-				pos = ParserUtils::SkipNextSpaceOrComment(pos, lineEnd);
-				if (pos->GetCommonType() == CommonTokenType::Identifier)
+				// defined ならその処理へ
+				if (pos->EqualString("defined", 7))
 				{
-					// 識別子だった。"#if defined AAA" のような形式。
-					ident = pos;
+					Token* ident = nullptr;
+
+					// スペースを飛ばす
+					pos = ParserUtils::SkipNextSpaceOrComment(pos, lineEnd);
+					if (pos->GetCommonType() == CommonTokenType::Identifier)
+					{
+						// 識別子だった。"#if defined AAA" のような形式。
+						ident = pos;
+					}
+					else if (pos->GetCommonType() == CommonTokenType::Operator && pos->EqualChar('('))
+					{
+						// ( だった。さらに飛ばすと識別子、もうひとつ飛ばすと ')'
+						ident = ParserUtils::SkipNextSpaceOrComment(pos, lineEnd);
+						LN_DIAG_REPORT_ERROR(ident->GetCommonType() == CommonTokenType::Identifier, DiagnosticsCode::Preprocessor_ExpectedDefinedId);
+						Token* paren = ParserUtils::SkipNextSpaceOrComment(ident, lineEnd);
+						LN_DIAG_REPORT_ERROR(paren->GetCommonType() == CommonTokenType::Operator && paren->EqualChar(')'), DiagnosticsCode::Preprocessor_ExpectedDefinedId);
+						++pos;
+						++pos;
+					}
+					else
+					{
+						// Error: defined の後に識別子が必要
+						LN_DIAG_REPORT_ERROR(0, DiagnosticsCode::Preprocessor_ExpectedDefinedId);
+					}
+
+					// マクロを探す。
+					if (m_fileCache->outputMacroMap.IsDefined(*ident)) {
+						m_preproExprTokenList.Add(ConstToken_1);	// "1" に展開
+					}
+					else {
+						m_preproExprTokenList.Add(ConstToken_0);	// "0" に展開
+					}
+					++pos;
 				}
-				else if (pos->GetCommonType() == CommonTokenType::Operator && pos->EqualChar('('))
+				// TODO: C++特有。CではNG?
+				else if (pos->EqualString("true", 4))
 				{
-					// ( だった。さらに飛ばすと識別子、もうひとつ飛ばすと ')'
-					ident = ParserUtils::SkipNextSpaceOrComment(pos, lineEnd);
-					LN_DIAG_REPORT_ERROR(ident->GetCommonType() == CommonTokenType::Identifier, DiagnosticsCode::Preprocessor_ExpectedDefinedId);
-					Token* paren = ParserUtils::SkipNextSpaceOrComment(ident, lineEnd);
-					LN_DIAG_REPORT_ERROR(paren->GetCommonType() == CommonTokenType::Operator && paren->EqualChar(')'), DiagnosticsCode::Preprocessor_ExpectedDefinedId);
-					++pos;
+					m_preproExprTokenList.Add(ConstToken_1);	// "1" に展開
 					++pos;
 				}
+				// マクロかも
+				else if (m_fileCache->outputMacroMap.IsDefined(*pos, &definedMacro))
+				{
+					const Token* begin;
+					const Token* end;
+					m_fileCache->GetMacroTokens(definedMacro->replacementRange, &begin, &end);
+					for (; begin < end; ++begin) {
+						m_preproExprTokenList.Add(*begin);
+					}
+					//definedMacro->AppendReplacementToTokenList(&m_preproExprTokenList);
+					++pos;
+				}
+				// それ以外のただの識別子はすべて 0 にしなければならない
 				else
 				{
-					// Error: defined の後に識別子が必要
-					LN_DIAG_REPORT_ERROR(0, DiagnosticsCode::Preprocessor_ExpectedDefinedId);
-				}
-
-				// マクロを探す。
-				if (m_fileCache->outputMacroMap.IsDefined(*ident)) {
-					m_preproExprTokenList.Add(ConstToken_1);	// "1" に展開
-				}
-				else {
 					m_preproExprTokenList.Add(ConstToken_0);	// "0" に展開
+					++pos;
 				}
-				++pos;
 			}
 			else
 			{
@@ -362,18 +496,18 @@ ResultState Preprocessor::PollingDirectiveLine(Token* lineBegin, Token* lineEnd)
 	//---------------------------------------------------------
 	// #ifdef
 	//		:: # ifdef identifier new-line groupopt
-	else if (lineBegin->EqualString("ifdef", 5))
+	else if (keyword->EqualString("ifdef", 5))
 	{
 		// 新しいセクションを開始する
 		m_conditionalSectionStack.Push(ConditionalSection());
 
 		// 次の識別子まで進める
-		lineBegin = ParserUtils::SkipNextSpaceOrComment(lineBegin, lineEnd);
+		Token* pos = ParserUtils::SkipNextSpaceOrComment(keyword, lineEnd);
 		// Error: 識別子ではなかった
-		LN_DIAG_REPORT_ERROR(lineBegin->GetCommonType() == CommonTokenType::Identifier, DiagnosticsCode::Preprocessor_SyntaxError);
+		LN_DIAG_REPORT_ERROR(pos->GetCommonType() == CommonTokenType::Identifier, DiagnosticsCode::Preprocessor_SyntaxError);
 
 		// 現時点でマクロが定義されているかチェック
-		if (m_fileCache->outputMacroMap.IsDefined(*lineBegin))
+		if (m_fileCache->outputMacroMap.IsDefined(*pos))
 		{
 			m_conditionalSectionStack.GetTop().state = ConditionalSectionState::Valid;
 		}
@@ -385,7 +519,7 @@ ResultState Preprocessor::PollingDirectiveLine(Token* lineBegin, Token* lineEnd)
 	//---------------------------------------------------------
 	// #else
 	//		::	# else new-line groupopt
-	else if (lineBegin->EqualString("else", 4))
+	else if (keyword->EqualString("else", 4))
 	{
 		if (m_conditionalSectionStack.IsEmpty() ||				// #if がない
 			m_conditionalSectionStack.GetTop().elseProcessed)	// 既に #else 受領済み
@@ -417,7 +551,7 @@ ResultState Preprocessor::PollingDirectiveLine(Token* lineBegin, Token* lineEnd)
 	//---------------------------------------------------------
 	// #endif
 	//		::	# endif new-line
-	else if (lineBegin->EqualString("endif", 5))
+	else if (keyword->EqualString("endif", 5))
 	{
 		if (m_conditionalSectionStack.IsEmpty())
 		{

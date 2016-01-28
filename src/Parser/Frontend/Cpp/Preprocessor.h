@@ -9,6 +9,19 @@ LN_NAMESPACE_BEGIN
 namespace parser
 {
 
+class SourceLocation
+{
+public:
+	uint32_t	loc;
+};
+
+class SourceRange
+{
+public:
+	SourceLocation	begin;
+	SourceLocation	end;
+};
+
 template<typename TValue>
 class IdentifierMap
 {
@@ -130,20 +143,23 @@ public:
 class MacroEntity
 {
 public:
-	TokenString	name;
-	TokenString	replacementContentString;	// 置換要素を文字列で並べたもの (完全一致の確認で使う。前後の空白は消しておく)
+	TokenString		name;
+	SourceRange		replacementRange;
+	//TokenString		replacementContentString;	// TODO: いらないかも。置換要素を文字列で並べたもの (完全一致の確認で使う。前後の空白は消しておく)
 
 	bool		undef = false;
+
+	//void AppendReplacementToTokenList(TokenList* tokenList);	// TODO: 引数リスト
 };
 
 class MacroMap
 {
 public:
-	MacroEntity* Insert(const Token& name, const TokenChar* replacementBegin, const TokenChar* replacementEnd);
+	MacroEntity* Insert(const Token& name, const SourceRange& replacementRange);
 
 	MacroEntity* Find(const Token& name);
 
-	bool IsDefined(const Token& name);
+	bool IsDefined(const Token& name, MacroEntity** outDefinedMacro = nullptr);
 
 private:
 	Array<MacroEntity>			m_allMacroList;	// 過去に定義された全てのマクロ
@@ -155,11 +171,17 @@ class RawReferenceMap
 
 };
 
+
+
+
 // プリプロセスしたファイル情報。
 // .c か .h かは問わない。
 // ×トークンリストは保持しないので注意。
 /*
 	トークンリストも保持する。UIColors.h とか。
+
+
+	同名ファイルでも、入力マクロマップの内容が違えば違うインスタンスを作る。
 */
 class PreprocessedFileCacheItem
 {
@@ -169,6 +191,13 @@ public:
 
 	MacroMap		outputMacroMap;
 	RawReferenceMap	outputRawReferenceMap;
+
+public:
+	SourceRange SaveMacroTokens(const Token* begin, const Token* end);	// キャッシュに保存すると再配置の可能性があるので、格納された場所はポインタではなくインデックスで返す
+	void GetMacroTokens(const SourceRange& range, const Token** outBegin, const Token** outEnd) const;
+
+private:
+	Array<Token>	m_tokensCache;
 };
 
 class HeaderFileManager
@@ -189,11 +218,13 @@ public:
 
 private:
 
-	ResultState PollingDirectiveLine(Token* lineBegin, Token* lineEnd);
+	ResultState PollingDirectiveLine(Token* keyword, Token* lineEnd);
 
 	bool IsInValidSection() const;
 
 	//TokenList::iterator GetNextGenericToken(TokenList::iterator pos);
+
+
 
 
 
@@ -229,9 +260,11 @@ private:
 	Stack<ConditionalSection>	m_conditionalSectionStack;
 	Token*						m_preproLineHead;	// # の次のトークンを指している
 
-	TokenList					m_preproExprTokenList;	// 前処理定数式のトークンを展開する
+	TokenList					m_preproExprTokenList;	// 前処理定数式のトークンを展開する作業領域
 	RpnParser					m_rpnParser;
 	RpnEvaluator				m_rpnEvaluator;
+
+	Array<Token*>				m_funcMacroParams;
 };
 
 } // namespace Parser

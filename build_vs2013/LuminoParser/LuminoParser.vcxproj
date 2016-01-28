@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\Parser\CacheBuffer.h" />
     <ClInclude Include="..\..\src\Parser\Common.h" />
     <ClInclude Include="..\..\src\Parser\DiagnosticsManager.h" />
     <ClInclude Include="..\..\src\Parser\Frontend\Cpp\CppLexer.h" />
@@ -21,7 +22,9 @@
     <ClInclude Include="..\..\src\Parser\Internal.h" />
     <ClInclude Include="..\..\src\Parser\ParserUtils.h" />
     <ClInclude Include="..\..\src\Parser\Token.h" />
+    <ClInclude Include="..\..\src\Parser\TokenBuffer.h" />
     <ClInclude Include="..\..\src\Parser\TokenList.h" />
+    <ClInclude Include="..\..\src\Parser\UnitFile.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Parser\DiagnosticsManager.cpp" />
@@ -30,6 +33,8 @@
     <ClCompile Include="..\..\src\Parser\FrontEnd\Lexer.cpp" />
     <ClCompile Include="..\..\src\Parser\Frontend\RpnParser.cpp" />
     <ClCompile Include="..\..\src\Parser\ParserUtils.cpp" />
+    <ClCompile Include="..\..\src\Parser\TokenBuffer.cpp" />
+    <ClCompile Include="..\..\src\Parser\UnitFile.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{180CF223-7284-44AB-8209-12B556C6109D}</ProjectGuid>

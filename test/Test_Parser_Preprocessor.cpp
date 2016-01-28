@@ -68,6 +68,39 @@ TEST_F(Test_Parser_Preprocessor, Basic)
 }
 
 //-----------------------------------------------------------------------------
+TEST_F(Test_Parser_Preprocessor, Basic_define)
+{
+#if 0
+	// <Test> 関数形式マクロの定義 (引数無し)
+	{
+		const char* code = "#define AAA() 1";
+		Preprocess(code);
+		m_fileCache->outputMacroMap;
+	}
+	// <Test> 関数形式マクロの定義 (引数1つ)
+	{
+		const char* code = "#define AAA(x) x+1";
+		Preprocess(code);
+	}
+	// <Test> 関数形式マクロの定義 (引数2つ以上)
+	{
+		const char* code = "#define AAA(x, y) x+y";
+		Preprocess(code);
+	}
+	// <Test> 関数形式マクロの定義 (可変長引数)
+	{
+		const char* code = "#define AAA(...) __VA_ARGS__";
+		Preprocess(code);
+	}
+	// <Test> 関数形式マクロの定義 (引数1つ + 可変長引数)
+	{
+		const char* code = "#define AAA(x, ...) x+__VA_ARGS__";
+		Preprocess(code);
+	}
+#endif
+}
+
+//-----------------------------------------------------------------------------
 TEST_F(Test_Parser_Preprocessor, Basic_if)
 {
 	// <Test> #if 1
@@ -166,6 +199,37 @@ TEST_F(Test_Parser_Preprocessor, Basic_if)
 		Preprocess(code);
 		ASSERT_EQ(true, m_tokens->GetAt(9).IsValid());
 	}
+
+
+	// <Test> #if マクロ
+	{
+		const char* code =
+			"#define AAA 1\n"
+			"#if AAA\n"
+			"1\n"
+			"#endif\n";
+		Preprocess(code);
+		ASSERT_EQ(true, m_tokens->GetAt(12).IsValid());
+	}
+	// <Test> #if 未定義マクロは 0 になる
+	{
+		const char* code =
+			"#if AAA\n"
+			"1\n"
+			"#endif\n";
+		Preprocess(code);
+		ASSERT_EQ(false, m_tokens->GetAt(5).IsValid());
+	}
+	// <Test> #if マクロを含む式
+	{
+		const char* code =
+			"#define AAA 1\n"
+			"#if AAA-1\n"
+			"1\n"
+			"#endif\n";
+		Preprocess(code);
+		ASSERT_EQ(false, m_tokens->GetAt(14).IsValid());
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -198,6 +262,41 @@ TEST_F(Test_Parser_Preprocessor, Basic_ifdef)
 		ASSERT_EQ(true, m_tokens->GetAt(10).IsValid());
 	}
 }
+
+#define AAAAAA
+#undef AAAAAA
+
+#if AAAAAA
+
+printf;
+
+#endif
+
+
+#define DDD(x, y) x + y
+#if DDD(1, -1)
+printf;
+#endif
+
+#define FFF(x, y) x+y
+#define EEE FFF(1, 1)
+#undef FFF
+#define FFF(x, y) x-y	// こっち優先
+#if EEE
+printf;
+#endif
+
+#define HHH 1
+#define GGG defined(HHH)
+#if GGG
+printf;
+#endif
+
+//#define CCC 1+1
+//#define CCC 1+1 
+//#define CCC 1/**/+1
+//#define CCC 1 + 1
+
 
 //-----------------------------------------------------------------------------
 TEST_F(Test_Parser_Preprocessor, Basic_else)

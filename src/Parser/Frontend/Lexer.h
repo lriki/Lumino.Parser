@@ -2,6 +2,7 @@
 #pragma once
 #include "../Common.h"
 #include "../TokenList.h"
+#include "../TokenBuffer.h"
 
 LN_NAMESPACE_BEGIN
 namespace parser
@@ -45,6 +46,7 @@ public:
 	static int ReadMBSSequence(const Range& buffer, Token* outToken);
 
 protected:
+	RefPtr<TokenBuffer>	m_tokenBuffer;
 	DiagnosticsItemSet*	m_diag;
 	int		m_currentLineNumber;	// 0Å`
 	int		m_currentColumn;
