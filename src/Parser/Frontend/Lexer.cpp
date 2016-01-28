@@ -1,5 +1,6 @@
 
 #include "../Internal.h"
+#include "../UnitFile.h"
 #include "Lexer.h"
 
 LN_NAMESPACE_BEGIN
@@ -33,6 +34,16 @@ static int g_alphaNumTypeTable[256] =
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
+ResultState Lexer::Tokenize(UnitFile* file, DiagnosticsItemSet* diag)
+{
+	ByteBuffer buffer = FileSystem::ReadAllBytes(file->GetFilePath());
+	file->m_tokenList = Tokenize(buffer, diag);
+	return ResultState::Success;	// TODO
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
 TokenListPtr Lexer::Tokenize(const char* str, DiagnosticsItemSet* diag)
 {
 	ByteBuffer buf(str, strlen(str));
@@ -49,6 +60,7 @@ TokenListPtr Lexer::Tokenize(const ByteBuffer& buffer, DiagnosticsItemSet* diag)
 	m_currentColumn = 0;
 
 	TokenListPtr list(LN_NEW TokenList(), false);
+	m_tokenBuffer = RefPtr<TokenBuffer>::MakeRef();
 
 	// 最悪のパターンで容量確保
 	list->Reserve(buffer.GetSize());
@@ -76,7 +88,7 @@ TokenListPtr Lexer::Tokenize(const ByteBuffer& buffer, DiagnosticsItemSet* diag)
 	}
 
 	// 最後に EOF を入れておく
-	list->Add(Token(CommonTokenType::Eof, nullptr, nullptr));
+	list->Add(m_tokenBuffer->CreateToken(CommonTokenType::Eof, nullptr, nullptr));
 
 	return list;
 }
@@ -106,7 +118,7 @@ int Lexer::ReadNewLine(const Range& buffer, Token* outToken)
 {
 	int len = IsNewLine(buffer);
 	if (len > 0) {
-		*outToken = Token(CommonTokenType::NewLine, buffer.pos, buffer.pos + len);
+		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::NewLine, buffer.pos, buffer.pos + len);
 		return len;
 	}
 	return 0;
@@ -152,7 +164,7 @@ int Lexer::ReadMBSSequence(const Range& buffer, Token* outToken)
 
 	int len = r.pos - buffer.pos;
 	if (len > 0) {
-		*outToken = Token(CommonTokenType::MbsSequence, buffer.pos, r.pos);
+		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::MbsSequence, buffer.pos, r.pos);
 	}
 	return len;
 }

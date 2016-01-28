@@ -29,6 +29,18 @@ public:
 		return AllocBuffer(sizeof(T) * count, dataArray);
 	}
 
+	T* GetData(DataLocation loc)
+	{
+		byte_t* buf = m_buffer.GetData();
+		return (T*)&buf[loc];
+	}
+
+	const T* GetData(DataLocation loc) const
+	{
+		const byte_t* buf = m_buffer.GetConstData();
+		return (T*)&buf[loc];
+	}
+
 private:
 	ByteBuffer	m_buffer;
 	size_t		m_usedByteCount;

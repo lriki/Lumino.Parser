@@ -33,6 +33,7 @@
     <ClCompile Include="..\..\src\Parser\FrontEnd\Lexer.cpp" />
     <ClCompile Include="..\..\src\Parser\Frontend\RpnParser.cpp" />
     <ClCompile Include="..\..\src\Parser\ParserUtils.cpp" />
+    <ClCompile Include="..\..\src\Parser\Token.cpp" />
     <ClCompile Include="..\..\src\Parser\TokenBuffer.cpp" />
     <ClCompile Include="..\..\src\Parser\UnitFile.cpp" />
   </ItemGroup>

@@ -10,7 +10,7 @@ protected:
 	ByteBuffer m_buffer;
 	CppLexer m_lex;
 	Preprocessor m_prepro;
-	std::shared_ptr<PreprocessedFileCacheItem> m_fileCache;
+	RefPtr<UnitFile> m_fileCache;
 	DiagnosticsItemSet m_diag;
 	TokenListPtr m_tokens;
 
@@ -25,10 +25,11 @@ protected:
 	bool TryPreprocess(const char* code)
 	{
 		m_diag.ClearItems();
-		m_fileCache.reset(LN_NEW PreprocessedFileCacheItem());
+		m_fileCache = RefPtr<UnitFile>::MakeRef();
+		m_fileCache->Initialize("test.c");
 		m_buffer = ByteBuffer(code);
 		m_tokens = m_lex.Tokenize(m_buffer, &m_diag);
-		return m_prepro.BuildPreprocessedTokenList(m_tokens, m_fileCache.get(), &m_diag) == ResultState::Success;
+		return m_prepro.BuildPreprocessedTokenList(m_tokens, m_fileCache, &m_diag) == ResultState::Success;
 	}
 };
 /*
@@ -376,7 +377,7 @@ TEST_F(Test_Parser_Preprocessor, Illigal)
 		ASSERT_EQ(false, TryPreprocess(code));
 		ASSERT_EQ(DiagnosticsCode::Preprocessor_UnexpectedElse, m_diag.GetItems()->GetAt(0).GetCode());
 	}
-	// <Test> defined の後ろが識別子か ( 以外
+	// <Illigal> defined の後ろが識別子か ( 以外
 	{
 		const char* code = "#if defined + AAA\n";
 		ASSERT_EQ(false, TryPreprocess(code));

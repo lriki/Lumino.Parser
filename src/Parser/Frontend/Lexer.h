@@ -32,6 +32,8 @@ public:
 	};
 
 public:
+	ResultState Tokenize(UnitFile* file, DiagnosticsItemSet* diag);
+
 	TokenListPtr Tokenize(const char* str, DiagnosticsItemSet* diag);	// TODO: ‚±‚ê‚¾‚Æo—ˆã‚ª‚Á‚½ Token ‚ªw‚µ‚Ä‚¢‚é•¶š—ñ‚ª‰ó‚ê‚Ä‚µ‚Ü‚¤
 	TokenListPtr Tokenize(const ByteBuffer& buffer, DiagnosticsItemSet* diag);
 
@@ -40,10 +42,10 @@ public:
 
 	static AlphaNumTypeFlags GetAlphaNumType(TokenChar ch);
 
-	static int ReadNewLine(const Range& buffer, Token* outToken);
+	int ReadNewLine(const Range& buffer, Token* outToken);
 	static int IsNewLine(const Range& buffer);
 
-	static int ReadMBSSequence(const Range& buffer, Token* outToken);
+	int ReadMBSSequence(const Range& buffer, Token* outToken);
 
 protected:
 	RefPtr<TokenBuffer>	m_tokenBuffer;

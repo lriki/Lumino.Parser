@@ -8,7 +8,9 @@ namespace parser
 typedef char TokenChar;
 typedef GenericString<TokenChar> TokenString;
 typedef GenericStringRef<TokenChar> TokenStringRef;
+typedef GenericPathName<TokenChar> TokenPathName;
 
+class UnitFile;
 class TokenBuffer;
 class TokenList;
 typedef RefPtr<TokenList> TokenListPtr;

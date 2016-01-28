@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include "../../Common.h"
 #include "../../TokenList.h"
+#include "../../TokenBuffer.h"
 #include "../RpnParser.h"
 
 LN_NAMESPACE_BEGIN
@@ -153,6 +154,7 @@ public:
 };
 
 class MacroMap
+	: public RefObject
 {
 public:
 	MacroEntity* Insert(const Token& name, const SourceRange& replacementRange);
@@ -160,6 +162,8 @@ public:
 	MacroEntity* Find(const Token& name);
 
 	bool IsDefined(const Token& name, MacroEntity** outDefinedMacro = nullptr);
+
+	uint64_t GetHashCode() const;
 
 private:
 	Array<MacroEntity>			m_allMacroList;	// âﬂãéÇ…íËã`Ç≥ÇÍÇΩëSÇƒÇÃÉ}ÉNÉç
@@ -214,7 +218,7 @@ class Preprocessor
 public:
 	Preprocessor();
 
-	ResultState BuildPreprocessedTokenList(TokenList* tokenList, PreprocessedFileCacheItem* outFileCache, DiagnosticsItemSet* diag);
+	ResultState BuildPreprocessedTokenList(TokenList* tokenList, UnitFile* unitFile/*PreprocessedFileCacheItem* outFileCache*/, DiagnosticsItemSet* diag);
 
 private:
 
@@ -252,8 +256,10 @@ private:
 		bool					elseProcessed = false;					// #elseéÛïtå„ÇÕtrue(#elseÅ`#elseñhé~ÇÃà◊)
 	};
 
+	ConstantTokenBuffer			m_constTokenBuffer;
 	TokenList*					m_tokenList;
-	PreprocessedFileCacheItem*	m_fileCache;
+	//PreprocessedFileCacheItem*	m_fileCache;
+	UnitFile*					m_unitFile;
 	DiagnosticsItemSet*			m_diag;
 
 	DirectiveSec				m_seqDirective;

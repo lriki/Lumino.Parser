@@ -201,15 +201,15 @@ public:
 
 
 	static int IsSpaceChar(const Range& r);
-	static int ReadSpaceSequence(const Range& buffer, Token* outToken);
+	int ReadSpaceSequence(const Range& buffer, Token* outToken);
 
 
 	static int IsKeyword(const Range& buffer, int* langTokenType);
-	static int ReadKeyword(const Range& buffer, Token* outToken);
+	int ReadKeyword(const Range& buffer, Token* outToken);
 
 	static int ReadEnclosingTokenHelper(const Range& buffer, TokenCheckCallback start, TokenCheckCallback end, const TokenChar* chars, bool* outNotFoundEndToken);
 
-	static int ReadCharLiteral(const Range& buffer, Token* outToken);
+	int ReadCharLiteral(const Range& buffer, Token* outToken);
 	static int IsCharLiteralStart(const Range& buffer);
 	static int IsCharLiteralEnd(const Range& buffer);
 	//static int IsAnyChar(const Range& buffer, const TokenChar* chars, int count);
@@ -220,11 +220,11 @@ public:
 	static int IsStringLiteralStartInIncludeDirective(const Range& buffer);
 	static int IsStringLiteralEndIncludeDirective(const Range& buffer);
 
-	static int ReadIdentifier(const Range& buffer, Token* outToken);
+	int ReadIdentifier(const Range& buffer, Token* outToken);
 	static int IsIdentifierStart(const Range& buffer);
 	static int IsIdentifierLetter(const Range& buffer);
 
-	static int ReadNumericLiteral(const Range& buffer, Token* outToken);
+	int ReadNumericLiteral(const Range& buffer, Token* outToken);
 	static int IsHexLiteralStart(const Range& buffer);
 	static int IsIntegerSuffix(const Range& buffer, int* outLiteralType);
 	static int IsRealSuffix(const Range& buffer, int* outLiteralType);
@@ -237,10 +237,10 @@ public:
 	int ReadLineComment(const Range& buffer, Token* outToken);
 	static int IsLineCommentStart(const Range& buffer);
 
-	static int ReadOperator(const Range& buffer, Token* outToken);
+	int ReadOperator(const Range& buffer, Token* outToken);
 	static int IsOperator(const Range& buffer, int* langTokenType);
 
-	static int ReadEscapeNewLine(const Range& buffer, Token* outToken);
+	int ReadEscapeNewLine(const Range& buffer, Token* outToken);
 	static int IsEscapeNewLine(const Range& buffer);
 
 private:

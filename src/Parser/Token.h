@@ -17,18 +17,21 @@ namespace parser
 class Token
 {
 public:
-	Token(CommonTokenType commonType, const TokenChar* begin, const TokenChar* end)
+	static const Token EofToken;
+
+
+private:
+	Token(CommonTokenType commonType/*, const TokenChar* begin, const TokenChar* end*/)
 	{
 		m_commonType = commonType;
-		m_begin = begin;
-		m_end = end;
 	}
-	Token(CommonTokenType commonType, const TokenChar* begin, const TokenChar* end, int langTokenType)
-		: Token(commonType, begin, end)
-	{
-		m_langTokenType = langTokenType;
-	}
+	//Token(CommonTokenType commonType, const TokenChar* begin, const TokenChar* end, int langTokenType)
+	//	: Token(commonType, begin, end)
+	//{
+	//	m_langTokenType = langTokenType;
+	//}
 
+public:
 	Token() = default;
 	Token(const Token& src) = default;
 	Token& operator = (const Token& src) = default;
@@ -36,9 +39,9 @@ public:
 
 	CommonTokenType GetCommonType() const { return m_commonType; }
 	int GetLangTokenType() const { return m_langTokenType; }
-	const TokenChar* GetBegin() const { return m_begin; }
-	const TokenChar* GetEnd() const { return m_end; }
-	int GetLength() const { return m_end - m_begin; }
+	const TokenChar* GetBegin() const;	// TODO: inline ‚É‚µ‚½‚¢
+	const TokenChar* GetEnd() const;
+	int GetLength() const { return m_locEnd - m_locBegin; }
 
 	bool IsSpaceOrComment() const { return m_commonType == CommonTokenType::SpaceSequence || m_commonType == CommonTokenType::Comment; }
 	bool IsEof() const { return m_commonType == CommonTokenType::Eof; }
@@ -47,14 +50,14 @@ public:
 	bool EqualString(const char* str, int len) const
 	{
 		if (GetLength() != len) return false;
-		return StringTraits::StrNCmp(m_begin, str, len) == 0;	// TODO: Case
+		return StringTraits::StrNCmp(GetBegin(), str, len) == 0;	// TODO: Case
 	}
 
 	// •¶Žš‚ªˆê’v‚·‚é‚©
 	bool EqualChar(char ch) const
 	{
 		if (GetLength() != 1) return false;
-		return *m_begin == ch;	// TODO: Case
+		return *GetBegin() == ch;	// TODO: Case
 	}
 
 	GenericString<TokenChar> ToString() const { return GenericString<TokenChar>(GetBegin(), GetLength()); }
@@ -72,9 +75,8 @@ private:
 	friend class TokenBuffer;
 	CommonTokenType		m_commonType = CommonTokenType::Unknown;
 	int					m_langTokenType = 0;
-	const TokenChar*	m_begin = nullptr;	// TODO: ‚¯‚·
-	const TokenChar*	m_end = nullptr;	// TODO: ‚¯‚·
 
+	TokenBuffer*		m_ownerBuffer = nullptr;
 	DataLocation		m_locBegin = 0;
 	DataLocation		m_locEnd = 0;
 

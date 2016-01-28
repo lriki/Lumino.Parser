@@ -175,7 +175,7 @@ int CppLexer::ReadSpaceSequence(const Range& buffer, Token* outToken)
 
 	// トークン作成
 	if (buffer.pos < r.pos) {
-		*outToken = Token(CommonTokenType::SpaceSequence, buffer.pos, r.pos);
+		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::SpaceSequence, buffer.pos, r.pos);
 	}
 	return r.pos - buffer.pos;
 }
@@ -291,7 +291,7 @@ int CppLexer::ReadKeyword(const Range& buffer, Token* outToken)
 	int lnagTokenType = 0;
 	int len = IsKeyword(buffer, &lnagTokenType);
 	if (len > 0) {
-		*outToken = Token(CommonTokenType::Keyword, buffer.pos, buffer.pos + len, lnagTokenType);
+		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::Keyword, buffer.pos, buffer.pos + len, lnagTokenType);
 		return len;
 	}
 	return 0;
@@ -363,7 +363,7 @@ int CppLexer::ReadCharLiteral(const Range& buffer, Token* outToken)
 		if (buffer.pos[0] == 'L') {
 			type = TT_NumericLitaralType_WideChar;
 		}
-		*outToken = Token(CommonTokenType::ArithmeticLiteral, buffer.pos, buffer.pos + len, type);
+		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::ArithmeticLiteral, buffer.pos, buffer.pos + len, type);
 	}
 	return len;
 }
@@ -435,7 +435,7 @@ int CppLexer::ReadStringLiteral(const Range& buffer, Token* outToken)
 		if (buffer.pos[0] == 'L') {
 			type = TT_NumericLitaralType_WideString;
 		}
-		*outToken = Token(CommonTokenType::StringLiteral, buffer.pos, buffer.pos + len, type);
+		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::StringLiteral, buffer.pos, buffer.pos + len, type);
 	}
 	return len;
 }
@@ -519,7 +519,7 @@ int CppLexer::ReadIdentifier(const Range& buffer, Token* outToken)
 	}
 
 	// トークン作成
-	*outToken = Token(CommonTokenType::Identifier, buffer.pos, r.pos);
+	*outToken = m_tokenBuffer->CreateToken(CommonTokenType::Identifier, buffer.pos, r.pos);
 	return r.pos - buffer.pos;
 }
 
@@ -688,7 +688,7 @@ int CppLexer::ReadNumericLiteral(const Range& buffer, Token* outToken)
 	}
 
 	// ここまで来たら解析成功
-	*outToken = Token(CommonTokenType::ArithmeticLiteral, buffer.pos, r.pos, litaralType);
+	*outToken = m_tokenBuffer->CreateToken(CommonTokenType::ArithmeticLiteral, buffer.pos, r.pos, litaralType);
 	return r.pos - buffer.pos;
 }
 
@@ -803,7 +803,7 @@ int CppLexer::ReadBlockComment(const Range& buffer, Token* outToken)
 			m_diag->Report(DiagnosticsCode::UnexpectedEOFInBlockComment);
 			return len;
 		}
-		*outToken = Token(CommonTokenType::Comment, buffer.pos, buffer.pos + len);
+		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::Comment, buffer.pos, buffer.pos + len);
 	}
 	return len;
 }
@@ -861,7 +861,7 @@ int CppLexer::ReadLineComment(const Range& buffer, Token* outToken)
 		r.pos++;
 	}
 
-	*outToken = Token(CommonTokenType::Comment, buffer.pos, r.pos);
+	*outToken = m_tokenBuffer->CreateToken(CommonTokenType::Comment, buffer.pos, r.pos);
 	return r.pos - buffer.pos;
 }
 
@@ -884,7 +884,7 @@ int CppLexer::ReadOperator(const Range& buffer, Token* outToken)
 	int lnagTokenType = 0;
 	int len = IsOperator(buffer, &lnagTokenType);
 	if (len > 0) {
-		*outToken = Token(CommonTokenType::Operator, buffer.pos, buffer.pos + len, lnagTokenType);
+		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::Operator, buffer.pos, buffer.pos + len, lnagTokenType);
 		return len;
 	}
 	return 0;
@@ -979,7 +979,7 @@ int CppLexer::ReadEscapeNewLine(const Range& buffer, Token* outToken)
 {
 	int len = IsEscapeNewLine(buffer);
 	if (len > 0) {
-		*outToken = Token(CommonTokenType::SpaceSequence, buffer.pos, buffer.pos + len, TT_EscapeNewLine);
+		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::SpaceSequence, buffer.pos, buffer.pos + len, TT_EscapeNewLine);
 		return len;
 	}
 	return 0;

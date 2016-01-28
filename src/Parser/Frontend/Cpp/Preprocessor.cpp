@@ -102,21 +102,13 @@
 #include "../../Internal.h"
 #include "../../DiagnosticsManager.h"
 #include "../../ParserUtils.h"
+#include "../../UnitFile.h"
 #include "CppLexer.h"
 #include "Preprocessor.h"
 
 LN_NAMESPACE_BEGIN
 namespace parser
 {
-
-static const Token ConstToken_Eof(CommonTokenType::Eof, nullptr, nullptr);
-
-static const TokenChar* ConstToken_0_Buf = "0";
-static const Token ConstToken_0(CommonTokenType::ArithmeticLiteral, ConstToken_0_Buf, ConstToken_0_Buf + 1, TT_NumericLitaralType_Int32);
-
-static const TokenChar* ConstToken_1_Buf = "1";
-static const Token ConstToken_1(CommonTokenType::ArithmeticLiteral, ConstToken_1_Buf, ConstToken_1_Buf + 1, TT_NumericLitaralType_Int32);
-
 
 //=============================================================================
 // MacroMap
@@ -179,37 +171,50 @@ bool MacroMap::IsDefined(const Token& name, MacroEntity** outDefinedMacro)
 	return false;
 }
 
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+uint64_t MacroMap::GetHashCode() const
+{
+	uint64_t value = 0;
+	for (auto& macro : m_allMacroList)
+	{
+		value += Hash::CalcHash(macro.name.c_str(), macro.name.GetLength());
+	}
+	return value + m_allMacroList.GetCount();	// ついでに個数でもいれておこうか
+}
+
 //=============================================================================
 // Preprocessor
 //=============================================================================
 
-//-----------------------------------------------------------------------------
+////-----------------------------------------------------------------------------
+////
+////-----------------------------------------------------------------------------
+//SourceRange PreprocessedFileCacheItem::SaveMacroTokens(const Token* begin, const Token* end)
+//{
+//	SourceRange range;
+//	range.begin.loc = m_tokensCache.GetCount();
+//	for (const Token* pos = begin; pos < end; ++pos)
+//	{
+//		m_tokensCache.Add(*pos);
+//	}
+//	range.end.loc = m_tokensCache.GetCount();
+//	m_tokensCache.Add(Token::EofToken);	// Eof を入れておくことでオーバーランや m_tokensCache[range.end.loc] へのアクセスに備える
+//	return range;
+//}
 //
-//-----------------------------------------------------------------------------
-SourceRange PreprocessedFileCacheItem::SaveMacroTokens(const Token* begin, const Token* end)
-{
-	SourceRange range;
-	range.begin.loc = m_tokensCache.GetCount();
-	for (const Token* pos = begin; pos < end; ++pos)
-	{
-		m_tokensCache.Add(*pos);
-	}
-	range.end.loc = m_tokensCache.GetCount();
-	m_tokensCache.Add(ConstToken_Eof);	// Eof を入れておくことでオーバーランや m_tokensCache[range.end.loc] へのアクセスに備える
-	return range;
-}
-
-//-----------------------------------------------------------------------------
+////-----------------------------------------------------------------------------
+////
+////-----------------------------------------------------------------------------
+//void PreprocessedFileCacheItem::GetMacroTokens(const SourceRange& range, const Token** outBegin, const Token** outEnd) const
+//{
+//	assert(outBegin != nullptr);
+//	assert(outEnd != nullptr);
+//	*outBegin = &m_tokensCache[range.begin.loc];
+//	*outEnd = &m_tokensCache[range.end.loc];
+//}
 //
-//-----------------------------------------------------------------------------
-void PreprocessedFileCacheItem::GetMacroTokens(const SourceRange& range, const Token** outBegin, const Token** outEnd) const
-{
-	assert(outBegin != nullptr);
-	assert(outEnd != nullptr);
-	*outBegin = &m_tokensCache[range.begin.loc];
-	*outEnd = &m_tokensCache[range.end.loc];
-}
-
 //=============================================================================
 // Preprocessor
 //=============================================================================
@@ -219,7 +224,7 @@ void PreprocessedFileCacheItem::GetMacroTokens(const SourceRange& range, const T
 //-----------------------------------------------------------------------------
 Preprocessor::Preprocessor()
 	: m_tokenList(nullptr)
-	, m_fileCache(nullptr)
+	, m_unitFile(nullptr)
 	, m_seqDirective(DirectiveSec::Idle)
 {
 }
@@ -227,10 +232,10 @@ Preprocessor::Preprocessor()
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-ResultState Preprocessor::BuildPreprocessedTokenList(TokenList* tokenList, PreprocessedFileCacheItem* outFileCache, DiagnosticsItemSet* diag)
+ResultState Preprocessor::BuildPreprocessedTokenList(TokenList* tokenList, UnitFile* unitFile, DiagnosticsItemSet* diag)
 {
 	m_tokenList = tokenList;
-	m_fileCache = outFileCache;
+	m_unitFile = unitFile;
 	m_diag = diag;
 	m_seqDirective = DirectiveSec::LineHead;
 	m_conditionalSectionStack.Clear();
@@ -374,11 +379,11 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 		}
 
 		// 定義内容を入力トークンリストから取り出して保持する
-		SourceRange range = m_fileCache->SaveMacroTokens(keyword, lineEnd + 1);
+		SourceRange range = m_unitFile->SaveMacroReplacementTokens(keyword, lineEnd + 1);
 
 		// マクロ登録
 		// TODO: マクロの上書き確認
-		m_fileCache->outputMacroMap.Insert(*macroName, range);
+		m_unitFile->m_macroMap->Insert(*macroName, range);
 	}
 	//---------------------------------------------------------
 	// #if
@@ -432,26 +437,26 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 					}
 
 					// マクロを探す。
-					if (m_fileCache->outputMacroMap.IsDefined(*ident)) {
-						m_preproExprTokenList.Add(ConstToken_1);	// "1" に展開
+					if (m_unitFile->m_macroMap->IsDefined(*ident)) {
+						m_preproExprTokenList.Add(m_constTokenBuffer.Get1());	// "1" に展開
 					}
 					else {
-						m_preproExprTokenList.Add(ConstToken_0);	// "0" に展開
+						m_preproExprTokenList.Add(m_constTokenBuffer.Get0());	// "0" に展開
 					}
 					++pos;
 				}
 				// TODO: C++特有。CではNG?
 				else if (pos->EqualString("true", 4))
 				{
-					m_preproExprTokenList.Add(ConstToken_1);	// "1" に展開
+					m_preproExprTokenList.Add(m_constTokenBuffer.Get1());	// "1" に展開
 					++pos;
 				}
 				// マクロかも
-				else if (m_fileCache->outputMacroMap.IsDefined(*pos, &definedMacro))
+				else if (m_unitFile->m_macroMap->IsDefined(*pos, &definedMacro))
 				{
 					const Token* begin;
 					const Token* end;
-					m_fileCache->GetMacroTokens(definedMacro->replacementRange, &begin, &end);
+					m_unitFile->GetMacroReplacementTokens(definedMacro->replacementRange, &begin, &end);
 					for (; begin < end; ++begin) {
 						m_preproExprTokenList.Add(*begin);
 					}
@@ -461,7 +466,7 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 				// それ以外のただの識別子はすべて 0 にしなければならない
 				else
 				{
-					m_preproExprTokenList.Add(ConstToken_0);	// "0" に展開
+					m_preproExprTokenList.Add(m_constTokenBuffer.Get0());	// "0" に展開
 					++pos;
 				}
 			}
@@ -507,7 +512,7 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 		LN_DIAG_REPORT_ERROR(pos->GetCommonType() == CommonTokenType::Identifier, DiagnosticsCode::Preprocessor_SyntaxError);
 
 		// 現時点でマクロが定義されているかチェック
-		if (m_fileCache->outputMacroMap.IsDefined(*pos))
+		if (m_unitFile->m_macroMap->IsDefined(*pos))
 		{
 			m_conditionalSectionStack.GetTop().state = ConditionalSectionState::Valid;
 		}
