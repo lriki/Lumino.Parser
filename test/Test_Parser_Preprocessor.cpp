@@ -234,6 +234,120 @@ TEST_F(Test_Parser_Preprocessor, Basic_if)
 }
 
 //-----------------------------------------------------------------------------
+TEST_F(Test_Parser_Preprocessor, Basic_elif)
+{
+	// <Test> #if が有効なら #elif は常に無効
+	{
+		const char* code =
+			"#if 1\n"
+			"1\n"
+			"#elif 1\n"
+			"2\n"
+			"#endif";
+		Preprocess(code);
+		ASSERT_EQ(false, m_tokens->GetAt(12).IsValid());	// '2'
+	}
+	// <Test> #if が無効なら #elif は条件を確認する (有効)
+	{
+		const char* code =
+			"#if 0\n"
+			"1\n"
+			"#elif 1\n"
+			"2\n"
+			"#endif";
+		Preprocess(code);
+		ASSERT_EQ(true, m_tokens->GetAt(12).IsValid());	// '2'
+	}
+	// <Test> #if が無効なら #elif は条件を確認する (無効)
+	{
+		const char* code =
+			"#if 0\n"
+			"1\n"
+			"#elif 0\n"
+			"2\n"
+			"#endif\n";
+		Preprocess(code);
+		ASSERT_EQ(false, m_tokens->GetAt(12).IsValid());	// '2'
+	}
+
+	// <Test> 複数の #elif (#if が有効となるパターン)
+	{
+		const char* code =
+			"#if 1\n"
+			"1\n"
+			"#elif 0\n"
+			"2\n"
+			"#elif 0\n"
+			"3\n"
+			"#else\n"
+			"4\n"
+			"#endif\n";
+		Preprocess(code);
+		ASSERT_EQ(true, m_tokens->GetAt(5).IsValid());		// '1'
+		ASSERT_EQ(false, m_tokens->GetAt(12).IsValid());	// '2'
+		ASSERT_EQ(false, m_tokens->GetAt(19).IsValid());	// '3'
+		ASSERT_EQ(false, m_tokens->GetAt(24).IsValid());	// '4'
+	}
+
+	// <Test> 複数の #elif (1つめの #elif が有効となるパターン)
+	{
+		const char* code =
+			"#if 0\n"
+			"1\n"
+			"#elif 1\n"
+			"2\n"
+			"#elif 0\n"
+			"3\n"
+			"#else\n"
+			"4\n"
+			"#endif\n";
+		Preprocess(code);
+		ASSERT_EQ(false, m_tokens->GetAt(5).IsValid());		// '1'
+		ASSERT_EQ(true, m_tokens->GetAt(12).IsValid());		// '2'
+		ASSERT_EQ(false, m_tokens->GetAt(19).IsValid());	// '3'
+		ASSERT_EQ(false, m_tokens->GetAt(24).IsValid());	// '4'
+	}
+
+	// <Test> 複数の #elif (2つめの #elif が有効となるパターン)
+	{
+		const char* code =
+			"#if 0\n"
+			"1\n"
+			"#elif 0\n"
+			"2\n"
+			"#elif 1\n"
+			"3\n"
+			"#else\n"
+			"4\n"
+			"#endif\n";
+		Preprocess(code);
+		ASSERT_EQ(false, m_tokens->GetAt(5).IsValid());		// '1'
+		ASSERT_EQ(false, m_tokens->GetAt(12).IsValid());	// '2'
+		ASSERT_EQ(true, m_tokens->GetAt(19).IsValid());		// '3'
+		ASSERT_EQ(false, m_tokens->GetAt(24).IsValid());	// '4'
+	}
+
+	// <Test> 複数の #elif (#else が有効となるパターン)
+	{
+		const char* code =
+			"#if 0\n"
+			"1\n"
+			"#elif 0\n"
+			"2\n"
+			"#elif 0\n"
+			"3\n"
+			"#else\n"
+			"4\n"
+			"#endif\n";
+		Preprocess(code);
+		ASSERT_EQ(false, m_tokens->GetAt(5).IsValid());		// '1'
+		ASSERT_EQ(false, m_tokens->GetAt(12).IsValid());	// '2'
+		ASSERT_EQ(false, m_tokens->GetAt(19).IsValid());	// '3'
+		ASSERT_EQ(true, m_tokens->GetAt(24).IsValid());		// '4'
+	}
+}
+
+//-----------------------------------------------------------------------------
 TEST_F(Test_Parser_Preprocessor, Basic_ifdef)
 {
 	// <Test> 無効領域
@@ -261,6 +375,50 @@ TEST_F(Test_Parser_Preprocessor, Basic_ifdef)
 		// 数値 1 は有効領域
 		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, m_tokens->GetAt(10).GetCommonType());
 		ASSERT_EQ(true, m_tokens->GetAt(10).IsValid());
+	}
+}
+
+//-----------------------------------------------------------------------------
+TEST_F(Test_Parser_Preprocessor, Basic_ifndef)
+{
+	// <Test> 無効領域
+	{
+		const char* code =
+			"#define AAA\n"
+			"#ifndef AAAB\n"
+			"1\n"
+			"#endif\n";
+		Preprocess(code);
+
+		// 数値 1 は有効領域
+		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, m_tokens->GetAt(10).GetCommonType());
+		ASSERT_EQ(true, m_tokens->GetAt(10).IsValid());
+	}
+	// <Test> 有効領域
+	{
+		const char* code =
+			"#define AAA\n"
+			"#ifndef AAA\n"
+			"1\n"
+			"#endif\n";
+		Preprocess(code);
+
+		// 数値 1 は無効領域
+		ASSERT_EQ(CommonTokenType::ArithmeticLiteral, m_tokens->GetAt(10).GetCommonType());
+		ASSERT_EQ(false, m_tokens->GetAt(10).IsValid());
+	}
+}
+
+//-----------------------------------------------------------------------------
+TEST_F(Test_Parser_Preprocessor, Basic_empty)
+{
+	// <Test> 空のディレクティブ (#だけ)
+	{
+		const char* code =
+			"#\n"	// 末尾がNewLine
+			"#";	// 末尾がEOF
+		Preprocess(code);
+		// 無視されるので、エラーや警告が無ければOK
 	}
 }
 
@@ -297,6 +455,14 @@ printf;
 //#define CCC 1+1 
 //#define CCC 1/**/+1
 //#define CCC 1 + 1
+
+
+#if 0
+#pm_include
+#if 0
+#else
+#endif
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -398,5 +564,11 @@ TEST_F(Test_Parser_Preprocessor, Illigal)
 			"#endif";
 		ASSERT_EQ(false, TryPreprocess(code));
 		ASSERT_EQ(DiagnosticsCode::Preprocessor_UnexpectedEndif, m_diag.GetItems()->GetAt(0).GetCode());
+	}
+	// <Illigal> #if のまえに #elif が来た
+	{
+		const char* code = "#elif\n";
+		ASSERT_EQ(false, TryPreprocess(code));
+		ASSERT_EQ(DiagnosticsCode::Preprocessor_UnexpectedElif, m_diag.GetItems()->GetAt(0).GetCode());
 	}
 }

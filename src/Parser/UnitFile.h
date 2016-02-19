@@ -28,13 +28,16 @@ LN_INTERNAL_ACCESS:
 	TokenPathName		m_filePath;
 	TokenListPtr		m_tokenList;
 
+	RefPtr<MacroMap>	m_macroMap;				// このファイルの中で定義されたマクロ。undef は undef として記録する
 	uint64_t			m_inputMacroMapHash;
-	RefPtr<MacroMap>	m_macroMap;		// このファイルの中で定義されたマクロ。undef は undef として記録する
 	Array<Token>		m_tokensCache;	// TODO: TokenList でもいい？
 	TokenBuffer			m_tokenBuffer;
 
 	// マクロの置換要素はずっと保存しておかなければならない。置き場所はこのクラスが一番イメージしやすいと思う。
 	// 一方、元のトークンリストは保存する必要は無い。どんな定義があるのかだけ分かればいい。(関数名は必要だけど () なんかはいらない)
+	// [2016/2/19] トークンリストも持っておかなければならない。
+	// UIColors.h とか、ハードコーディングで埋め込んだリソースとか。
+	// 全部メモリに持っておくのもツライので、一時ファイルに保存することも検討する必要があるかも。
 };
 
 } // namespace Parser

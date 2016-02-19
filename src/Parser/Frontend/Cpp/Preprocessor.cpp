@@ -292,6 +292,13 @@ ResultState Preprocessor::BuildPreprocessedTokenList(TokenList* tokenList, UnitF
 				m_preproLineHead = &token;
 				m_seqDirective = DirectiveSec::FindLineEnd;	// 行末を探しに行く
 			}
+			else if (
+				token.GetCommonType() == CommonTokenType::NewLine ||
+				token.GetCommonType() == CommonTokenType::Eof)
+			{
+				// # しかない行だった。シーケンスを戻す
+				m_seqDirective = DirectiveSec::LineHead;
+			}
 			else
 			{
 				// Error: # の次になんか変なトークンが来た
@@ -390,118 +397,23 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 	//		:: # if constant-expression new-line groupopt
 	else if (keyword->EqualString("if", 2))
 	{
-		// 新しいセクションを開始する
-		m_conditionalSectionStack.Push(ConditionalSection());
-
-		// スペースを飛ばす
-		Token* pos = ParserUtils::SkipNextSpaceOrComment(keyword, lineEnd);
-
-		// Error: 定数式が無かった
-		LN_DIAG_REPORT_ERROR(pos < lineEnd, DiagnosticsCode::Preprocessor_InvalidConstantExpression);
-
-		// 定数式内のマクロを展開して RpnParser に掛けるためのトークンリストを作る
-		m_preproExprTokenList.Clear();
-		m_preproExprTokenList.Reserve(lineEnd - pos);		// マクロ展開で増えることはあるが、とりあえずこれだけあらかじめ確保しておく
-		for (; pos < lineEnd; )
-		{
-			if (pos->GetCommonType() == CommonTokenType::Identifier)
-			{
-				MacroEntity* definedMacro;
-
-				// defined ならその処理へ
-				if (pos->EqualString("defined", 7))
-				{
-					Token* ident = nullptr;
-
-					// スペースを飛ばす
-					pos = ParserUtils::SkipNextSpaceOrComment(pos, lineEnd);
-					if (pos->GetCommonType() == CommonTokenType::Identifier)
-					{
-						// 識別子だった。"#if defined AAA" のような形式。
-						ident = pos;
-					}
-					else if (pos->GetCommonType() == CommonTokenType::Operator && pos->EqualChar('('))
-					{
-						// ( だった。さらに飛ばすと識別子、もうひとつ飛ばすと ')'
-						ident = ParserUtils::SkipNextSpaceOrComment(pos, lineEnd);
-						LN_DIAG_REPORT_ERROR(ident->GetCommonType() == CommonTokenType::Identifier, DiagnosticsCode::Preprocessor_ExpectedDefinedId);
-						Token* paren = ParserUtils::SkipNextSpaceOrComment(ident, lineEnd);
-						LN_DIAG_REPORT_ERROR(paren->GetCommonType() == CommonTokenType::Operator && paren->EqualChar(')'), DiagnosticsCode::Preprocessor_ExpectedDefinedId);
-						++pos;
-						++pos;
-					}
-					else
-					{
-						// Error: defined の後に識別子が必要
-						LN_DIAG_REPORT_ERROR(0, DiagnosticsCode::Preprocessor_ExpectedDefinedId);
-					}
-
-					// マクロを探す。
-					if (m_unitFile->m_macroMap->IsDefined(*ident)) {
-						m_preproExprTokenList.Add(m_constTokenBuffer.Get1());	// "1" に展開
-					}
-					else {
-						m_preproExprTokenList.Add(m_constTokenBuffer.Get0());	// "0" に展開
-					}
-					++pos;
-				}
-				// TODO: C++特有。CではNG?
-				else if (pos->EqualString("true", 4))
-				{
-					m_preproExprTokenList.Add(m_constTokenBuffer.Get1());	// "1" に展開
-					++pos;
-				}
-				// マクロかも
-				else if (m_unitFile->m_macroMap->IsDefined(*pos, &definedMacro))
-				{
-					const Token* begin;
-					const Token* end;
-					m_unitFile->GetMacroReplacementTokens(definedMacro->replacementRange, &begin, &end);
-					for (; begin < end; ++begin) {
-						m_preproExprTokenList.Add(*begin);
-					}
-					//definedMacro->AppendReplacementToTokenList(&m_preproExprTokenList);
-					++pos;
-				}
-				// それ以外のただの識別子はすべて 0 にしなければならない
-				else
-				{
-					m_preproExprTokenList.Add(m_constTokenBuffer.Get0());	// "0" に展開
-					++pos;
-				}
-			}
-			else
-			{
-				m_preproExprTokenList.Add(*pos);
-				++pos;
-			}
-		}
-
-		// 定数式を評価する
-		LN_RESULT_CALL(m_rpnParser.ParseCppConstExpression2(m_preproExprTokenList.cbegin(), m_preproExprTokenList.cend(), m_diag));
-		RpnOperand result;
-		LN_RESULT_CALL(m_rpnEvaluator.TryEval(m_rpnParser.GetTokenList(), m_diag, &result));
-
-		// 整数型と bool を許可
-		if (result.IsIntager() || result.type == RpnOperandType::Boolean)
-		{
-			if (result.IsFuzzyTrue()) {	// 0 以外または true
-				m_conditionalSectionStack.GetTop().state = ConditionalSectionState::Valid;
-			}
-			else {
-				m_conditionalSectionStack.GetTop().state = ConditionalSectionState::Invalid;
-			}
-		}
-		else
-		{
-			// Error: 整数定数式が必要です
-			LN_DIAG_REPORT_ERROR(pos < lineEnd, DiagnosticsCode::Preprocessor_InvalidConstantExpression);
-		}
+		LN_RESULT_CALL(AnalyzeIfElif(keyword, lineEnd, false));
+	}
+	//---------------------------------------------------------
+	// #elif
+	//		:: # elif constant-expression new-line groupopt
+	else if (keyword->EqualString("elif", 4))
+	{
+		LN_RESULT_CALL(AnalyzeIfElif(keyword, lineEnd, true));
 	}
 	//---------------------------------------------------------
 	// #ifdef
 	//		:: # ifdef identifier new-line groupopt
-	else if (keyword->EqualString("ifdef", 5))
+	// #ifndef
+	//		:: # ifndef identifier new-line groupopt
+	else if (
+		keyword->EqualString("ifdef", 5) ||
+		keyword->EqualString("ifndef", 6))
 	{
 		// 新しいセクションを開始する
 		m_conditionalSectionStack.Push(ConditionalSection());
@@ -512,7 +424,14 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 		LN_DIAG_REPORT_ERROR(pos->GetCommonType() == CommonTokenType::Identifier, DiagnosticsCode::Preprocessor_SyntaxError);
 
 		// 現時点でマクロが定義されているかチェック
-		if (m_unitFile->m_macroMap->IsDefined(*pos))
+		bool isDefined = m_unitFile->m_macroMap->IsDefined(*pos);
+
+		// "ifndef" なら条件を反転
+		if (keyword->GetLength() == 6) {
+			isDefined = !isDefined;
+		}
+
+		if (isDefined)
 		{
 			m_conditionalSectionStack.GetTop().state = ConditionalSectionState::Valid;
 		}
@@ -565,6 +484,154 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 			return ResultState::Error;
 		}
 		m_conditionalSectionStack.Pop();
+	}
+	//---------------------------------------------------------
+	// #line
+	//		::	# line pp-tokens new-line
+	else if (keyword->EqualString("line", 4))
+	{
+		// TODO:
+	}
+
+	return ResultState::Success;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+ResultState Preprocessor::AnalyzeIfElif(Token* keyword, Token* lineEnd, bool isElse)
+{
+	// #if の場合
+	if (!isElse)
+	{
+		// 新しいセクションを開始する
+		m_conditionalSectionStack.Push(ConditionalSection());
+	}
+	// #elif の場合
+	else
+	{
+		if (m_conditionalSectionStack.IsEmpty() ||				// #if がない
+			m_conditionalSectionStack.GetTop().elseProcessed)	// 既に #else 受領済み
+		{
+			LN_DIAG_REPORT_ERROR(0, DiagnosticsCode::Preprocessor_UnexpectedElif);
+		}
+
+		if (m_conditionalSectionStack.GetTop().state == ConditionalSectionState::Valid)
+		{
+			// 有効領域のあとの #else なので、後は何があろうと全て無効領域となる
+			m_conditionalSectionStack.GetTop().state = ConditionalSectionState::Skip;
+			return ResultState::Success;
+		}
+		else if (m_conditionalSectionStack.GetTop().state == ConditionalSectionState::Skip)
+		{
+			// 既に Skip 状態
+			return ResultState::Success;
+		}
+	}
+
+	// スペースを飛ばす
+	Token* pos = ParserUtils::SkipNextSpaceOrComment(keyword, lineEnd);
+
+	// Error: 定数式が無かった
+	LN_DIAG_REPORT_ERROR(pos < lineEnd, DiagnosticsCode::Preprocessor_InvalidConstantExpression);
+
+	// 定数式内のマクロを展開して RpnParser に掛けるためのトークンリストを作る
+	m_preproExprTokenList.Clear();
+	m_preproExprTokenList.Reserve(lineEnd - pos);		// マクロ展開で増えることはあるが、とりあえずこれだけあらかじめ確保しておく
+	for (; pos < lineEnd;)
+	{
+		if (pos->GetCommonType() == CommonTokenType::Identifier)
+		{
+			MacroEntity* definedMacro;
+
+			// defined ならその処理へ
+			if (pos->EqualString("defined", 7))
+			{
+				Token* ident = nullptr;
+
+				// スペースを飛ばす
+				pos = ParserUtils::SkipNextSpaceOrComment(pos, lineEnd);
+				if (pos->GetCommonType() == CommonTokenType::Identifier)
+				{
+					// 識別子だった。"#if defined AAA" のような形式。
+					ident = pos;
+				}
+				else if (pos->GetCommonType() == CommonTokenType::Operator && pos->EqualChar('('))
+				{
+					// ( だった。さらに飛ばすと識別子、もうひとつ飛ばすと ')'
+					ident = ParserUtils::SkipNextSpaceOrComment(pos, lineEnd);
+					LN_DIAG_REPORT_ERROR(ident->GetCommonType() == CommonTokenType::Identifier, DiagnosticsCode::Preprocessor_ExpectedDefinedId);
+					Token* paren = ParserUtils::SkipNextSpaceOrComment(ident, lineEnd);
+					LN_DIAG_REPORT_ERROR(paren->GetCommonType() == CommonTokenType::Operator && paren->EqualChar(')'), DiagnosticsCode::Preprocessor_ExpectedDefinedId);
+					++pos;
+					++pos;
+				}
+				else
+				{
+					// Error: defined の後に識別子が必要
+					LN_DIAG_REPORT_ERROR(0, DiagnosticsCode::Preprocessor_ExpectedDefinedId);
+				}
+
+				// マクロを探す
+				if (m_unitFile->m_macroMap->IsDefined(*ident)) {
+					m_preproExprTokenList.Add(m_constTokenBuffer.Get1());	// "1" に展開
+				}
+				else {
+					m_preproExprTokenList.Add(m_constTokenBuffer.Get0());	// "0" に展開
+				}
+				++pos;
+			}
+			// TODO: C++特有。CではNG?
+			else if (pos->EqualString("true", 4))
+			{
+				m_preproExprTokenList.Add(m_constTokenBuffer.Get1());	// "1" に展開
+				++pos;
+			}
+			// マクロかも
+			else if (m_unitFile->m_macroMap->IsDefined(*pos, &definedMacro))
+			{
+				const Token* begin;
+				const Token* end;
+				m_unitFile->GetMacroReplacementTokens(definedMacro->replacementRange, &begin, &end);
+				for (; begin < end; ++begin) {
+					m_preproExprTokenList.Add(*begin);
+				}
+				//definedMacro->AppendReplacementToTokenList(&m_preproExprTokenList);
+				++pos;
+			}
+			// それ以外のただの識別子はすべて 0 にしなければならない
+			else
+			{
+				m_preproExprTokenList.Add(m_constTokenBuffer.Get0());	// "0" に展開
+				++pos;
+			}
+		}
+		else
+		{
+			m_preproExprTokenList.Add(*pos);
+			++pos;
+		}
+	}
+
+	// 定数式を評価する
+	LN_RESULT_CALL(m_rpnParser.ParseCppConstExpression2(m_preproExprTokenList.cbegin(), m_preproExprTokenList.cend(), m_diag));
+	RpnOperand result;
+	LN_RESULT_CALL(m_rpnEvaluator.TryEval(m_rpnParser.GetTokenList(), m_diag, &result));
+
+	// 整数型と bool を許可
+	if (result.IsIntager() || result.type == RpnOperandType::Boolean)
+	{
+		if (result.IsFuzzyTrue()) {	// 0 以外または true
+			m_conditionalSectionStack.GetTop().state = ConditionalSectionState::Valid;
+		}
+		else {
+			m_conditionalSectionStack.GetTop().state = ConditionalSectionState::Invalid;
+		}
+	}
+	else
+	{
+		// Error: 整数定数式が必要です
+		LN_DIAG_REPORT_ERROR(pos < lineEnd, DiagnosticsCode::Preprocessor_InvalidConstantExpression);
 	}
 
 	return ResultState::Success;

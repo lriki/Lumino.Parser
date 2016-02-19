@@ -201,46 +201,46 @@ public:
 
 
 	static int IsSpaceChar(const Range& r);
-	int ReadSpaceSequence(const Range& buffer, Token* outToken);
+	int ReadSpaceSequence(const Range& buffer, ReadResult* outResult);
 
 
 	static int IsKeyword(const Range& buffer, int* langTokenType);
-	int ReadKeyword(const Range& buffer, Token* outToken);
+	int ReadKeyword(const Range& buffer, ReadResult* outResult);
 
 	static int ReadEnclosingTokenHelper(const Range& buffer, TokenCheckCallback start, TokenCheckCallback end, const TokenChar* chars, bool* outNotFoundEndToken);
 
-	int ReadCharLiteral(const Range& buffer, Token* outToken);
+	int ReadCharLiteral(const Range& buffer, ReadResult* outResult);
 	static int IsCharLiteralStart(const Range& buffer);
 	static int IsCharLiteralEnd(const Range& buffer);
 	//static int IsAnyChar(const Range& buffer, const TokenChar* chars, int count);
 
-	int ReadStringLiteral(const Range& buffer, Token* outToken);
+	int ReadStringLiteral(const Range& buffer, ReadResult* outResult);
 	static int IsStringLiteralStart(const Range& buffer);
 	static int IsStringLiteralEnd(const Range& buffer);
 	static int IsStringLiteralStartInIncludeDirective(const Range& buffer);
 	static int IsStringLiteralEndIncludeDirective(const Range& buffer);
 
-	int ReadIdentifier(const Range& buffer, Token* outToken);
+	int ReadIdentifier(const Range& buffer, ReadResult* outResult);
 	static int IsIdentifierStart(const Range& buffer);
 	static int IsIdentifierLetter(const Range& buffer);
 
-	int ReadNumericLiteral(const Range& buffer, Token* outToken);
+	int ReadNumericLiteral(const Range& buffer, ReadResult* outResult);
 	static int IsHexLiteralStart(const Range& buffer);
 	static int IsIntegerSuffix(const Range& buffer, int* outLiteralType);
 	static int IsRealSuffix(const Range& buffer, int* outLiteralType);
 	static int IsExponentStart(const Range& buffer);
 
-	int ReadBlockComment(const Range& buffer, Token* outToken);
+	int ReadBlockComment(const Range& buffer, ReadResult* outResult);
 	static int IsBlockCommentStart(const Range& buffer);
 	static int IsBlockCommentEnd(const Range& buffer);
 
-	int ReadLineComment(const Range& buffer, Token* outToken);
+	int ReadLineComment(const Range& buffer, ReadResult* outResult);
 	static int IsLineCommentStart(const Range& buffer);
 
-	int ReadOperator(const Range& buffer, Token* outToken);
+	int ReadOperator(const Range& buffer, ReadResult* outResult);
 	static int IsOperator(const Range& buffer, int* langTokenType);
 
-	int ReadEscapeNewLine(const Range& buffer, Token* outToken);
+	int ReadEscapeNewLine(const Range& buffer, ReadResult* outResult);
 	static int IsEscapeNewLine(const Range& buffer);
 
 private:

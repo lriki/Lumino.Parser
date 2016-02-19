@@ -223,6 +223,7 @@ public:
 private:
 
 	ResultState PollingDirectiveLine(Token* keyword, Token* lineEnd);
+	ResultState AnalyzeIfElif(Token* keyword, Token* lineEnd, bool isElse);
 
 	bool IsInValidSection() const;
 
@@ -263,10 +264,10 @@ private:
 	DiagnosticsItemSet*			m_diag;
 
 	DirectiveSec				m_seqDirective;
-	Stack<ConditionalSection>	m_conditionalSectionStack;
-	Token*						m_preproLineHead;	// # の次のトークンを指している
+	Stack<ConditionalSection>	m_conditionalSectionStack;	// #if ～ #endif までの情報のスタック
+	Token*						m_preproLineHead;			// # の次のトークンを指している
 
-	TokenList					m_preproExprTokenList;	// 前処理定数式のトークンを展開する作業領域
+	TokenList					m_preproExprTokenList;		// 前処理定数式のトークンを展開する作業領域
 	RpnParser					m_rpnParser;
 	RpnEvaluator				m_rpnEvaluator;
 

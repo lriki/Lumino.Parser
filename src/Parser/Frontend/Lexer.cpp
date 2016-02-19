@@ -114,11 +114,11 @@ AlphaNumTypeFlags Lexer::GetAlphaNumType(TokenChar ch)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int Lexer::ReadNewLine(const Range& buffer, Token* outToken)
+int Lexer::ReadNewLine(const Range& buffer, ReadResult* outResult)
 {
 	int len = IsNewLine(buffer);
 	if (len > 0) {
-		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::NewLine, buffer.pos, buffer.pos + len);
+		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::NewLine, buffer.pos, buffer.pos + len));
 		return len;
 	}
 	return 0;
@@ -145,7 +145,7 @@ int Lexer::IsNewLine(const Range& buffer)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int Lexer::ReadMBSSequence(const Range& buffer, Token* outToken)
+int Lexer::ReadMBSSequence(const Range& buffer, ReadResult* outResult)
 {
 	Range r = buffer;
 	while (r.pos < r.end)
@@ -164,7 +164,7 @@ int Lexer::ReadMBSSequence(const Range& buffer, Token* outToken)
 
 	int len = r.pos - buffer.pos;
 	if (len > 0) {
-		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::MbsSequence, buffer.pos, r.pos);
+		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::MbsSequence, buffer.pos, r.pos));
 	}
 	return len;
 }

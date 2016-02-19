@@ -33,6 +33,7 @@ enum class DiagnosticsCode
 	Preprocessor_InvalidConstantExpression	= Severity_Error | PreprocessorGroup | 4,	/**< 整数定数式が無効です。*//* C1017 invalid integer constant expression */
 	Preprocessor_UnexpectedElse				= Severity_Error | PreprocessorGroup | 5,	/**< 予期しない #else が見つかりました。*/
 	Preprocessor_UnexpectedEndif			= Severity_Error | PreprocessorGroup | 6,	/**< 予期しない #endif が見つかりました。*/
+	Preprocessor_UnexpectedElif				= Severity_Error | PreprocessorGroup | 6,	/**< 予期しない #elif が見つかりました。*/
 	Preprocessor_ExpectedDefinedId			= Severity_Error | PreprocessorGroup | 7,	/**< defined の後に識別子が必要です。*//* C2003 expected 'defined id' */
 };
 

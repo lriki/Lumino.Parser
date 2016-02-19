@@ -21,7 +21,6 @@ public:
 
 		Range()
 		{
-
 		}
 
 		Range(const TokenChar* begin, const TokenChar* end_)
@@ -29,6 +28,18 @@ public:
 			pos = begin;
 			end = end_;
 		}
+	};
+
+	struct ReadResult
+	{
+		void Set(const Token& t)
+		{
+			token = t;
+		}
+
+		Token	token;
+		int		lineIncrementCount = 0;
+		int		lastColumn = -1;
 	};
 
 public:
@@ -42,10 +53,10 @@ public:
 
 	static AlphaNumTypeFlags GetAlphaNumType(TokenChar ch);
 
-	int ReadNewLine(const Range& buffer, Token* outToken);
+	int ReadNewLine(const Range& buffer, ReadResult* outResult);
 	static int IsNewLine(const Range& buffer);
 
-	int ReadMBSSequence(const Range& buffer, Token* outToken);
+	int ReadMBSSequence(const Range& buffer, ReadResult* outResult);
 
 protected:
 	RefPtr<TokenBuffer>	m_tokenBuffer;

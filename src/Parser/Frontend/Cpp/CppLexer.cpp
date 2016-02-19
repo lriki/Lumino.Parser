@@ -32,44 +32,44 @@ CppLexer::~CppLexer()
 int CppLexer::ReadToken(const Range& buffer, TokenList* list)
 {
 	int len;
-	Token token;
+	ReadResult result;
 
 	// 空白並び
-	len = ReadSpaceSequence(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadSpaceSequence(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// 改行
-	len = ReadNewLine(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadNewLine(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// 予約語
-	len = ReadKeyword(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadKeyword(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// 文字リテラル
-	len = ReadCharLiteral(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadCharLiteral(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// 文字列リテラル
-	len = ReadStringLiteral(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadStringLiteral(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// 識別子
-	len = ReadIdentifier(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadIdentifier(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// 数値リテラル
-	len = ReadNumericLiteral(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadNumericLiteral(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// ブロックコメント
-	len = ReadBlockComment(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadBlockComment(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// 行コメント (演算子より先に見ておく)
-	len = ReadLineComment(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadLineComment(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// 演算子
-	len = ReadOperator(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadOperator(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// 行末エスケープ
-	len = ReadEscapeNewLine(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadEscapeNewLine(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	// マルチバイト文字並び
-	len = ReadMBSSequence(buffer, &token);
-	if (len > 0) { list->Add(token); return len; }
+	len = ReadMBSSequence(buffer, &result);
+	if (len > 0) { list->Add(result.token); return len; }
 	
 
 	/* 文字列リテラルは識別子の前に解析する。これは、L 等のプレフィックス対応のため。
@@ -159,7 +159,7 @@ int CppLexer::IsSpaceChar(const Range& r)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int CppLexer::ReadSpaceSequence(const Range& buffer, Token* outToken)
+int CppLexer::ReadSpaceSequence(const Range& buffer, ReadResult* outResult)
 {
 	// 連続するスペース文字の数を返す
 	// (全角スペースを許容する場合はそれ全体の文字数もカウント)
@@ -175,7 +175,7 @@ int CppLexer::ReadSpaceSequence(const Range& buffer, Token* outToken)
 
 	// トークン作成
 	if (buffer.pos < r.pos) {
-		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::SpaceSequence, buffer.pos, r.pos);
+		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::SpaceSequence, buffer.pos, r.pos));
 	}
 	return r.pos - buffer.pos;
 }
@@ -286,12 +286,12 @@ int CppLexer::IsKeyword(const Range& buffer, int* langTokenType)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int CppLexer::ReadKeyword(const Range& buffer, Token* outToken)
+int CppLexer::ReadKeyword(const Range& buffer, ReadResult* outResult)
 {
 	int lnagTokenType = 0;
 	int len = IsKeyword(buffer, &lnagTokenType);
 	if (len > 0) {
-		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::Keyword, buffer.pos, buffer.pos + len, lnagTokenType);
+		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::Keyword, buffer.pos, buffer.pos + len, lnagTokenType));
 		return len;
 	}
 	return 0;
@@ -350,7 +350,7 @@ int CppLexer::ReadEnclosingTokenHelper(const Range& buffer, TokenCheckCallback s
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int CppLexer::ReadCharLiteral(const Range& buffer, Token* outToken)
+int CppLexer::ReadCharLiteral(const Range& buffer, ReadResult* outResult)
 {
 	//const TokenChar chars[] = { '\'', '"', '?', '\\', 'a', 'b', 'f', 'n', 'r', 't', 'v', '\0' };
 	const TokenChar chars[] = { '\'', '\0' };	// 分割が目的なので ' だけエスケープでOK
@@ -363,7 +363,7 @@ int CppLexer::ReadCharLiteral(const Range& buffer, Token* outToken)
 		if (buffer.pos[0] == 'L') {
 			type = TT_NumericLitaralType_WideChar;
 		}
-		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::ArithmeticLiteral, buffer.pos, buffer.pos + len, type);
+		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::ArithmeticLiteral, buffer.pos, buffer.pos + len, type));
 	}
 	return len;
 }
@@ -412,7 +412,7 @@ int CppLexer::IsCharLiteralEnd(const Range& buffer)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int CppLexer::ReadStringLiteral(const Range& buffer, Token* outToken)
+int CppLexer::ReadStringLiteral(const Range& buffer, ReadResult* outResult)
 {
 	bool notFoundEndToken;
 
@@ -435,7 +435,7 @@ int CppLexer::ReadStringLiteral(const Range& buffer, Token* outToken)
 		if (buffer.pos[0] == 'L') {
 			type = TT_NumericLitaralType_WideString;
 		}
-		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::StringLiteral, buffer.pos, buffer.pos + len, type);
+		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::StringLiteral, buffer.pos, buffer.pos + len, type));
 	}
 	return len;
 }
@@ -490,7 +490,7 @@ int CppLexer::IsStringLiteralEndIncludeDirective(const Range& buffer)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int CppLexer::ReadIdentifier(const Range& buffer, Token* outToken)
+int CppLexer::ReadIdentifier(const Range& buffer, ReadResult* outResult)
 {
 	/*
 		a b c d e f g h i j k l m
@@ -519,7 +519,7 @@ int CppLexer::ReadIdentifier(const Range& buffer, Token* outToken)
 	}
 
 	// トークン作成
-	*outToken = m_tokenBuffer->CreateToken(CommonTokenType::Identifier, buffer.pos, r.pos);
+	outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::Identifier, buffer.pos, r.pos));
 	return r.pos - buffer.pos;
 }
 
@@ -550,7 +550,7 @@ int CppLexer::IsIdentifierLetter(const Range& buffer)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int CppLexer::ReadNumericLiteral(const Range& buffer, Token* outToken)
+int CppLexer::ReadNumericLiteral(const Range& buffer, ReadResult* outResult)
 {
 	/* 123	10進数リテラル
 	* 012	8進数リテラル
@@ -688,7 +688,7 @@ int CppLexer::ReadNumericLiteral(const Range& buffer, Token* outToken)
 	}
 
 	// ここまで来たら解析成功
-	*outToken = m_tokenBuffer->CreateToken(CommonTokenType::ArithmeticLiteral, buffer.pos, r.pos, litaralType);
+	outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::ArithmeticLiteral, buffer.pos, r.pos, litaralType));
 	return r.pos - buffer.pos;
 }
 
@@ -792,7 +792,7 @@ int CppLexer::IsExponentStart(const Range& buffer)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int CppLexer::ReadBlockComment(const Range& buffer, Token* outToken)
+int CppLexer::ReadBlockComment(const Range& buffer, ReadResult* outResult)
 {
 	bool notFoundEndToken;
 	int len = ReadEnclosingTokenHelper(buffer, IsBlockCommentStart, IsBlockCommentEnd, nullptr, &notFoundEndToken);
@@ -803,7 +803,7 @@ int CppLexer::ReadBlockComment(const Range& buffer, Token* outToken)
 			m_diag->Report(DiagnosticsCode::UnexpectedEOFInBlockComment);
 			return len;
 		}
-		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::Comment, buffer.pos, buffer.pos + len);
+		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::Comment, buffer.pos, buffer.pos + len));
 	}
 	return len;
 }
@@ -833,7 +833,7 @@ int CppLexer::IsBlockCommentEnd(const Range& buffer)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int CppLexer::ReadLineComment(const Range& buffer, Token* outToken)
+int CppLexer::ReadLineComment(const Range& buffer, ReadResult* outResult)
 {
 	// 行コメントの開始チェック
 	int len = IsLineCommentStart(buffer);
@@ -861,7 +861,7 @@ int CppLexer::ReadLineComment(const Range& buffer, Token* outToken)
 		r.pos++;
 	}
 
-	*outToken = m_tokenBuffer->CreateToken(CommonTokenType::Comment, buffer.pos, r.pos);
+	outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::Comment, buffer.pos, r.pos));
 	return r.pos - buffer.pos;
 }
 
@@ -879,12 +879,12 @@ int CppLexer::IsLineCommentStart(const Range& buffer)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int CppLexer::ReadOperator(const Range& buffer, Token* outToken)
+int CppLexer::ReadOperator(const Range& buffer, ReadResult* outResult)
 {
 	int lnagTokenType = 0;
 	int len = IsOperator(buffer, &lnagTokenType);
 	if (len > 0) {
-		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::Operator, buffer.pos, buffer.pos + len, lnagTokenType);
+		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::Operator, buffer.pos, buffer.pos + len, lnagTokenType));
 		return len;
 	}
 	return 0;
@@ -975,11 +975,11 @@ int CppLexer::IsOperator(const Range& buffer, int* langTokenType)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-int CppLexer::ReadEscapeNewLine(const Range& buffer, Token* outToken)
+int CppLexer::ReadEscapeNewLine(const Range& buffer, ReadResult* outResult)
 {
 	int len = IsEscapeNewLine(buffer);
 	if (len > 0) {
-		*outToken = m_tokenBuffer->CreateToken(CommonTokenType::SpaceSequence, buffer.pos, buffer.pos + len, TT_EscapeNewLine);
+		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::SpaceSequence, buffer.pos, buffer.pos + len, TT_EscapeNewLine));
 		return len;
 	}
 	return 0;

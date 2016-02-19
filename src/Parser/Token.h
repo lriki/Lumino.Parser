@@ -71,14 +71,29 @@ public:
 	void SetValid(bool valid) { m_valid = valid; }
 	bool IsValid() const { return m_valid; }
 
+	void SetFirstLineNumber(int lineNumber) { m_firstLineNumber = lineNumber; }
+	void SetFirstColumn(int column) { m_firstColumn = column; }
+	void SetLastLineNumber(int lineNumber) { m_lastLineNumber = lineNumber; }
+	void SetLastColumn(int column) { m_lastColumn = column; }
+
+	int GetFirstLineNumber() const { return m_firstLineNumber; }
+	int GetFirstColumn() const { return m_firstColumn; }
+	int GetLastLineNumber() const { return m_lastLineNumber; }
+	int GetLastColumn() const { return m_lastColumn; }
+
 private:
 	friend class TokenBuffer;
 	CommonTokenType		m_commonType = CommonTokenType::Unknown;
 	int					m_langTokenType = 0;
+	int					m_firstLineNumber = -1;		// 0スタート
+	int					m_firstColumn = -1;			// 0スタート
+	int					m_lastLineNumber = -1;		// 0スタート
+	int					m_lastColumn = -1;			// 0スタート
+
 
 	TokenBuffer*		m_ownerBuffer = nullptr;
-	DataLocation		m_locBegin = 0;
-	DataLocation		m_locEnd = 0;
+	DataLocation		m_locBegin = 0;				// m_ownerBuffer 内の文字列のある先頭インデックス
+	DataLocation		m_locEnd = 0;				// m_ownerBuffer 内の文字列のある終端インデックス
 
 	MacroEntity*		m_macroEntity = nullptr;
 
