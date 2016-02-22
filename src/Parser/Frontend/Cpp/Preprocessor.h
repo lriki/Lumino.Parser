@@ -223,7 +223,8 @@ public:
 private:
 
 	ResultState PollingDirectiveLine(Token* keyword, Token* lineEnd);
-	ResultState AnalyzeIfElif(Token* keyword, Token* lineEnd, bool isElse);
+	ResultState AnalyzeIfElifDirective(Token* keyword, Token* lineEnd, bool isElse);
+	ResultState AnalyzeIncludeDirective(Token* keyword, Token* lineEnd);
 
 	bool IsInValidSection() const;
 

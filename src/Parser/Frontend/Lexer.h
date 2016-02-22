@@ -59,6 +59,8 @@ public:
 	int ReadMBSSequence(const Range& buffer, ReadResult* outResult);
 
 protected:
+	virtual void OnStart();
+
 	RefPtr<TokenBuffer>	m_tokenBuffer;
 	DiagnosticsItemSet*	m_diag;
 	int		m_currentLineNumber;	// 0Å`

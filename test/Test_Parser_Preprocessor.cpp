@@ -26,12 +26,14 @@ protected:
 	{
 		m_diag.ClearItems();
 		m_fileCache = RefPtr<UnitFile>::MakeRef();
-		m_fileCache->Initialize("test.c");
+		m_fileCache->Initialize(LN_LOCALFILE("test.c"));
 		m_buffer = ByteBuffer(code);
 		m_tokens = m_lex.Tokenize(m_buffer, &m_diag);
 		return m_prepro.BuildPreprocessedTokenList(m_tokens, m_fileCache, &m_diag) == ResultState::Success;
 	}
 };
+//#error aaa
+//#error "aaa"
 /*
 	defined()
 
@@ -513,6 +515,17 @@ TEST_F(Test_Parser_Preprocessor, Basic_else)
 #endif
 
 
+//-----------------------------------------------------------------------------
+TEST_F(Test_Parser_Preprocessor, Unit_include)
+{
+	{
+		const char* code =
+			"#include \"test.h\"";
+		Preprocess(code);
+		ASSERT_EQ(true, m_tokens->GetAt(10).IsValid());
+	}
+
+}
 
 //-----------------------------------------------------------------------------
 TEST_F(Test_Parser_Preprocessor, Illigal)

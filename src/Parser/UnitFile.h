@@ -9,14 +9,16 @@ namespace parser
 {
 
 // .cpp や .h、1つの解析単位となるファイル
+// TODO: CodeFile とかの名前のほうがいいかな？
 class UnitFile
 	: public RefObject
 {
 public:
 
-	void Initialize(const TokenPathName& filePath);
+	void Initialize(const TokenPathName& fileAbsPath);
 
-	const TokenPathName& GetFilePath() const { return m_filePath; }
+	const TokenPathName& GetFilePath() const { return m_fileAbsPath; }
+	const TokenPathName& GetDirectoryPath() const { return m_directoryAbsPath; }
 
 
 public:
@@ -25,7 +27,8 @@ public:
 
 
 LN_INTERNAL_ACCESS:
-	TokenPathName		m_filePath;
+	TokenPathName		m_fileAbsPath;
+	TokenPathName		m_directoryAbsPath;	// m_fileAbsPath の parent。incldue ファイルの検索とかで頻繁に使うので、メモリ効率を考慮してあらかじめ取り出しておく
 	TokenListPtr		m_tokenList;
 
 	RefPtr<MacroMap>	m_macroMap;				// このファイルの中で定義されたマクロ。undef は undef として記録する

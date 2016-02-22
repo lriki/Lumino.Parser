@@ -15,7 +15,7 @@ namespace parser
 //
 //-----------------------------------------------------------------------------
 CppLexer::CppLexer()
-	: m_seqPreProInclude(PreProIncludeSeq::LineHead)
+	: m_seqPPDirective(PPDirectiveSeq::LineHead)
 {
 }
 
@@ -37,6 +37,18 @@ int CppLexer::ReadToken(const Range& buffer, TokenList* list)
 	// 空白並び
 	len = ReadSpaceSequence(buffer, &result);
 	if (len > 0) { list->Add(result.token); return len; }
+	// #include のヘッダ名
+	if (m_seqPPDirective == PPDirectiveSeq::ReadingPPHeaderName)
+	{
+		len = ReadPPHeaderName(buffer, &result);
+		if (len > 0) { list->Add(result.token); return len; }
+	}
+	// プリプロセッサトークン列
+	else if (m_seqPPDirective == PPDirectiveSeq::ReadingPPTokens)
+	{
+		len = ReadPPTokens(buffer, &result);
+		if (len > 0) { list->Add(result.token); return len; }
+	}
 	// 改行
 	len = ReadNewLine(buffer, &result);
 	if (len > 0) { list->Add(result.token); return len; }
@@ -98,45 +110,68 @@ int CppLexer::ReadToken(const Range& buffer, TokenList* list)
 void CppLexer::PollingToken(const Token& token)
 {
 	// 何もしていない。改行を探す。
-	if (m_seqPreProInclude == PreProIncludeSeq::Idle)
+	if (m_seqPPDirective == PPDirectiveSeq::Idle)
 	{
 		if (token.GetCommonType() == CommonTokenType::NewLine)
 		{
-			m_seqPreProInclude = PreProIncludeSeq::LineHead;		// 改行が見つかった。行頭状態へ
+			m_seqPPDirective = PPDirectiveSeq::LineHead;		// 改行が見つかった。行頭状態へ
 		}
 	}
 	// 行頭にいる。# を探す。
-	else if (m_seqPreProInclude == PreProIncludeSeq::LineHead)
+	else if (m_seqPPDirective == PPDirectiveSeq::LineHead)
 	{
 		if (token.GetCommonType() == CommonTokenType::Operator &&
 			token.GetLangTokenType() == TT_CppOP_Sharp)
 		{
-			m_seqPreProInclude = PreProIncludeSeq::FoundSharp;	// "#" を見つけた
+			m_seqPPDirective = PPDirectiveSeq::FoundSharp;	// "#" を見つけた
 		}
 		else {
-			m_seqPreProInclude = PreProIncludeSeq::Idle;		// "#" 以外のトークンだった。Idle へ。
+			m_seqPPDirective = PPDirectiveSeq::Idle;		// "#" 以外のトークンだった。Idle へ。
 		}
 	}
 	// # まで見つけている。次の "include" を探す。
-	else if (m_seqPreProInclude == PreProIncludeSeq::FoundSharp)
+	else if (m_seqPPDirective == PPDirectiveSeq::FoundSharp)
 	{
-		if (token.EqualString("include", 7))
+		if (token.EqualString("if", 2) ||
+			token.EqualString("ifdef", 5) ||
+			token.EqualString("ifndef", 6) ||
+			token.EqualString("elif", 4) ||
+			token.EqualString("else", 4) ||
+			token.EqualString("define", 6) ||
+			token.EqualString("undef", 5))
 		{
-			m_seqPreProInclude = PreProIncludeSeq::FoundInclude;	// "include" を見つけた
+			m_seqPPDirective = PPDirectiveSeq::Idle;	// 以降、pp-tokens として解析せず、普通のトークン分割をまわす
+			//m_seqPPDirective = PPDirectiveSeq::FoundInclude;	// "include" を見つけた
+		}
+		else if (token.EqualString("include", 7))
+		{
+			m_seqPPDirective = PPDirectiveSeq::ReadingPPHeaderName;	// "include" を見つけたので HeaderName の解析へ
 		}
 		else
 		{
-			m_seqPreProInclude = PreProIncludeSeq::Idle;		// #" 以外のトークンだった。"include" 以外のプリプロディレクティブ。
+			m_seqPPDirective = PPDirectiveSeq::ReadingPPTokens;	// 以降、改行までは pp-tokens として読み取る
+			//m_seqPPDirective = PPDirectiveSeq::Idle;		// #" 以外のトークンだった。"include" 以外のプリプロディレクティブ。
 		}
 	}
 	// include ～ 行末
-	else if (m_seqPreProInclude == PreProIncludeSeq::FoundInclude)
+	else if (m_seqPPDirective == PPDirectiveSeq::ReadingPPHeaderName)
 	{
 		if (token.GetCommonType() == CommonTokenType::NewLine)
 		{
-			m_seqPreProInclude = PreProIncludeSeq::LineHead;		// 改行が見つかった。行頭状態へ
+			m_seqPPDirective = PPDirectiveSeq::LineHead;		// 改行が見つかった。行頭状態へ
 		}
 	}
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+void CppLexer::OnStart()
+{
+	Lexer::OnStart();
+
+	// 初期状態は改行直後扱いとする。ファイル先頭に # ディレクティブがあることに備える。
+	m_seqPPDirective = PPDirectiveSeq::LineHead;
 }
 
 //-----------------------------------------------------------------------------
@@ -417,17 +452,17 @@ int CppLexer::ReadStringLiteral(const Range& buffer, ReadResult* outResult)
 	bool notFoundEndToken;
 
 	int len = 0;
-	if (m_seqPreProInclude != PreProIncludeSeq::FoundInclude)
-	{
+	//if (m_seqPPDirective != PPDirectiveSeq::FoundInclude)
+	//{
 		//const TokenChar chars[] = { '\'', '"', '?', '\\', 'a', 'b', 'f', 'n', 'r', 't', 'v', '\0' };
 		const TokenChar chars[] = { '"', '\0' };	// 分割が目的なので " だけエスケープでOK
 		len = ReadEnclosingTokenHelper(buffer, IsStringLiteralStart, IsStringLiteralEnd, chars, &notFoundEndToken);
-	}
-	else
-	{
-		// #include 内の場合はこちら。エスケープは無い
-		len = ReadEnclosingTokenHelper(buffer, IsStringLiteralStartInIncludeDirective, IsStringLiteralEndIncludeDirective, nullptr, &notFoundEndToken);
-	}
+	//}
+	//else
+	//{
+	//	// #include 内の場合はこちら。エスケープは無い
+	//	len = ReadEnclosingTokenHelper(buffer, IsStringLiteralStartInIncludeDirective, IsStringLiteralEndIncludeDirective, nullptr, &notFoundEndToken);
+	//}
 
 	if (len > 0)
 	{
@@ -458,28 +493,6 @@ int CppLexer::IsStringLiteralStart(const Range& buffer)
 //
 //-----------------------------------------------------------------------------
 int CppLexer::IsStringLiteralEnd(const Range& buffer)
-{
-	if (buffer.pos[0] == '"') {
-		return 1;
-	}
-	return 0;
-}
-
-//-----------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------
-int CppLexer::IsStringLiteralStartInIncludeDirective(const Range& buffer)
-{
-	if (buffer.pos[0] == '"' || buffer.pos[0] == '<') {
-		return 1;
-	}
-	return 0;
-}
-
-//-----------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------
-int CppLexer::IsStringLiteralEndIncludeDirective(const Range& buffer)
 {
 	if (buffer.pos[0] == '"') {
 		return 1;
@@ -858,7 +871,7 @@ int CppLexer::ReadLineComment(const Range& buffer, ReadResult* outResult)
 			break;			// 終了
 		}
 
-		r.pos++;
+		++r.pos;
 	}
 
 	outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::Comment, buffer.pos, r.pos));
@@ -1004,6 +1017,72 @@ int CppLexer::IsEscapeNewLine(const Range& buffer)
 		}
 	}
 	return 0;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+int CppLexer::ReadPPHeaderName(const Range& buffer, ReadResult* outResult)
+{
+	// エスケープは無い
+	bool notFoundEndToken;
+	int len = ReadEnclosingTokenHelper(buffer, IsStringLiteralStartInIncludeDirective, IsStringLiteralEndIncludeDirective, nullptr, &notFoundEndToken);
+	if (len > 0)
+	{
+		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::StringLiteral, buffer.pos, buffer.pos + len, TT_HeaderName));
+	}
+	return len;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+int CppLexer::IsStringLiteralStartInIncludeDirective(const Range& buffer)
+{
+	if (buffer.pos[0] == '"' || buffer.pos[0] == '<') {
+		return 1;
+	}
+	return 0;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+int CppLexer::IsStringLiteralEndIncludeDirective(const Range& buffer)
+{
+	if (buffer.pos[0] == '"' || buffer.pos[0] == '>') {
+		return 1;
+	}
+	return 0;
+}
+
+//-----------------------------------------------------------------------------
+// プリプロセッサトークン列(1行)の読み取り。
+// 改行は含まない。
+// #define AAA は 「#, define, space, AAA, NewLine」で出てくる。
+// EscapeNewLine も同様。
+//		#error AAA\
+//		BBB
+// は、「#, error, space, PPTokens, EscapeNewLine, PPTokens」
+//-----------------------------------------------------------------------------
+int CppLexer::ReadPPTokens(const Range& buffer, ReadResult* outResult)
+{
+	Range r = buffer;
+	while (r.pos < r.end)
+	{
+		// 改行まで読む
+		int len = IsEscapeNewLine(r);
+		if (len > 0) {
+			break;		// 終了
+		}
+		len = IsNewLine(r);
+		if (len > 0) {
+			break;		// 終了
+		}
+		++r.pos;
+	}
+
+	return r.pos - buffer.pos;
 }
 
 } // namespace Parser

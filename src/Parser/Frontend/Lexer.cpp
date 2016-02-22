@@ -65,6 +65,8 @@ TokenListPtr Lexer::Tokenize(const ByteBuffer& buffer, DiagnosticsItemSet* diag)
 	// 最悪のパターンで容量確保
 	list->Reserve(buffer.GetSize());
 
+	OnStart();
+
 	Range r;
 	r.pos = (const TokenChar*)buffer.GetConstData();
 	r.end = r.pos + (buffer.GetSize() / sizeof(TokenChar));
@@ -167,6 +169,13 @@ int Lexer::ReadMBSSequence(const Range& buffer, ReadResult* outResult)
 		outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::MbsSequence, buffer.pos, r.pos));
 	}
 	return len;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+void Lexer::OnStart()
+{
 }
 
 } // namespace Parser

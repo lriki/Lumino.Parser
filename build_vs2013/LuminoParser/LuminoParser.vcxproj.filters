@@ -54,6 +54,9 @@
     <ClInclude Include="..\..\src\Parser\TokenBuffer.h">
       <Filter>Parser</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Parser\Context.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Parser\FrontEnd\Lexer.cpp">
@@ -81,6 +84,9 @@
       <Filter>Parser</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Parser\Token.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Parser\Context.cpp">
       <Filter>Parser</Filter>
     </ClCompile>
   </ItemGroup>

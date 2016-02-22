@@ -178,6 +178,8 @@ enum CppTokenType
 	TT_NumericLitaralType_AsciiString,
 	TT_NumericLitaralType_WideString,
 
+	TT_HeaderName,
+
 
 	TT_EscapeNewLine,
 };
@@ -185,7 +187,35 @@ enum CppTokenType
 
 /**
 	@brief
-	@note	#include は特別扱いする。<> で囲まれたファイルパスは文字列リテラル扱いする。
+	@note	
+		[2016/2/22 2]
+		やっぱり #include は特別扱いしたほうが色々と都合がいい。
+		インクルードファイル名のトークンは header-name として取り出す。
+	
+		[2016/2/22]
+		#include や #line 等は、Lexer では pp-tokens として解析する。
+		構文的にはこう。
+			:: # include pp-tokens new-line
+			:: # line pp-tokens new-line
+
+		で、Preprocessor クラスで、pp-tokens をトークン分割する。
+		ちなみに pp-tokens の構文は次の通り。
+			pp-tokens:
+				preprocessing-token
+				pp-tokens preprocessing-token
+			preprocessing-token:
+				header-name
+				identifier
+				pp-number
+				character-literal
+				user-defined-character-literal
+				string-literal
+				user-defined-string-literal
+				preprocessing-op-or-punc
+				each non-white-space character that cannot be one of the above
+		構文的には #include <a.h> <b.h> とか書ける点に注意。
+
+		× #include は特別扱いする。<> で囲まれたファイルパスは文字列リテラル扱いする。
 */
 class CppLexer
 	: public Lexer
@@ -198,6 +228,7 @@ public:
 
 	virtual int ReadToken(const Range& buffer, TokenList* list) override;
 	virtual void PollingToken(const Token& newToken) override;
+	virtual void OnStart();
 
 
 	static int IsSpaceChar(const Range& r);
@@ -217,8 +248,6 @@ public:
 	int ReadStringLiteral(const Range& buffer, ReadResult* outResult);
 	static int IsStringLiteralStart(const Range& buffer);
 	static int IsStringLiteralEnd(const Range& buffer);
-	static int IsStringLiteralStartInIncludeDirective(const Range& buffer);
-	static int IsStringLiteralEndIncludeDirective(const Range& buffer);
 
 	int ReadIdentifier(const Range& buffer, ReadResult* outResult);
 	static int IsIdentifierStart(const Range& buffer);
@@ -243,17 +272,26 @@ public:
 	int ReadEscapeNewLine(const Range& buffer, ReadResult* outResult);
 	static int IsEscapeNewLine(const Range& buffer);
 
+	int ReadPPHeaderName(const Range& buffer, ReadResult* outResult);
+	static int IsStringLiteralStartInIncludeDirective(const Range& buffer);
+	static int IsStringLiteralEndIncludeDirective(const Range& buffer);
+
+	int ReadPPTokens(const Range& buffer, ReadResult* outResult);
+
 private:
-	// #include の検索シーケンス
-	enum class PreProIncludeSeq
+	// pp-tokens として取り出すプリプロセッサディレクティブ
+	enum class PPDirectiveSeq
 	{
 		Idle = 0,		// 何もしていない
 		LineHead,		// 行頭である。または初期状態
 		FoundSharp,		// "#" を見つけた
-		FoundInclude,	// "include" を見つけた
+
+		//FoundInclude,	// "include" を見つけた
+		ReadingPPHeaderName,
+		ReadingPPTokens,
 	};
 
-	PreProIncludeSeq	m_seqPreProInclude;
+	PPDirectiveSeq	m_seqPPDirective;
 };
 
 } // namespace Parser

@@ -397,14 +397,14 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 	//		:: # if constant-expression new-line groupopt
 	else if (keyword->EqualString("if", 2))
 	{
-		LN_RESULT_CALL(AnalyzeIfElif(keyword, lineEnd, false));
+		LN_RESULT_CALL(AnalyzeIfElifDirective(keyword, lineEnd, false));
 	}
 	//---------------------------------------------------------
 	// #elif
 	//		:: # elif constant-expression new-line groupopt
 	else if (keyword->EqualString("elif", 4))
 	{
-		LN_RESULT_CALL(AnalyzeIfElif(keyword, lineEnd, true));
+		LN_RESULT_CALL(AnalyzeIfElifDirective(keyword, lineEnd, true));
 	}
 	//---------------------------------------------------------
 	// #ifdef
@@ -490,7 +490,14 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 	//		::	# line pp-tokens new-line
 	else if (keyword->EqualString("line", 4))
 	{
-		// TODO:
+		LN_NOTIMPLEMENTED();
+	}
+	//---------------------------------------------------------
+	// #include
+	//		:: # include pp-tokens new-line
+	else if (keyword->EqualString("include", 7))
+	{
+		AnalyzeIncludeDirective(keyword, lineEnd);
 	}
 
 	return ResultState::Success;
@@ -499,7 +506,7 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-ResultState Preprocessor::AnalyzeIfElif(Token* keyword, Token* lineEnd, bool isElse)
+ResultState Preprocessor::AnalyzeIfElifDirective(Token* keyword, Token* lineEnd, bool isElse)
 {
 	// #if の場合
 	if (!isElse)
@@ -633,6 +640,29 @@ ResultState Preprocessor::AnalyzeIfElif(Token* keyword, Token* lineEnd, bool isE
 		// Error: 整数定数式が必要です
 		LN_DIAG_REPORT_ERROR(pos < lineEnd, DiagnosticsCode::Preprocessor_InvalidConstantExpression);
 	}
+
+	return ResultState::Success;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+ResultState Preprocessor::AnalyzeIncludeDirective(Token* keyword, Token* lineEnd)
+{
+	// スペースを飛ばす
+	Token* pos = ParserUtils::SkipNextSpaceOrComment(keyword, lineEnd);
+	LN_DIAG_REPORT_ERROR(pos < lineEnd, DiagnosticsCode::Preprocessor_InvalidHeaderName);	// Error: ヘッダ名が無効です
+	LN_DIAG_REPORT_ERROR(pos->GetLangTokenType() == TT_HeaderName, DiagnosticsCode::Preprocessor_InvalidHeaderName);
+	
+	// パス名前後のクォーテーションを除いて、パス名の範囲を求める
+	const TokenChar* pathBegin = pos->GetBegin() + 1;
+	const TokenChar* pathEnd = pos->GetEnd() - 1;
+
+	// m_unitFile を基準に絶対パスにする。もし pathBegin～ が絶対パスならそれがそのまま使われる
+	TokenPathName absPath(m_unitFile->GetDirectoryPath(), TokenStringRef(pathBegin, pathEnd));
+
+	printf(absPath.c_str());
+
 
 	return ResultState::Success;
 }

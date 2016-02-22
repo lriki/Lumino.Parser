@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\Parser\CacheBuffer.h" />
     <ClInclude Include="..\..\src\Parser\Common.h" />
+    <ClInclude Include="..\..\src\Parser\Context.h" />
     <ClInclude Include="..\..\src\Parser\DiagnosticsManager.h" />
     <ClInclude Include="..\..\src\Parser\Frontend\Cpp\CppLexer.h" />
     <ClInclude Include="..\..\src\Parser\Frontend\Cpp\Preprocessor.h" />
@@ -27,6 +28,7 @@
     <ClInclude Include="..\..\src\Parser\UnitFile.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\Parser\Context.cpp" />
     <ClCompile Include="..\..\src\Parser\DiagnosticsManager.cpp" />
     <ClCompile Include="..\..\src\Parser\Frontend\Cpp\CppLexer.cpp" />
     <ClCompile Include="..\..\src\Parser\Frontend\Cpp\Preprocessor.cpp" />
