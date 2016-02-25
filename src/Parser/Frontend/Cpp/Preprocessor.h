@@ -59,7 +59,7 @@ public:
 		m_table2[key] = value;
 	}
 
-	bool Find(const TokenChar* keyBegin, const TokenChar* keyEnd, TValue* outValue, CaseSensitivity cs)
+	bool Find(const TokenChar* keyBegin, const TokenChar* keyEnd, TValue* outValue, CaseSensitivity cs) const
 	{
 		int len = keyEnd - keyBegin;
 		if (len < MaxKeyLength)
@@ -123,7 +123,7 @@ public:
 	std::map<TokenString, TValue>	m_table2;
 
 	// 先頭文字、終端文字、長さから Item を取得する。名前が一致するかは改めてチェックすること。
-	Item* GetItem(TokenChar first, TokenChar last, int len)
+	Item* GetItem(TokenChar first, TokenChar last, int len) const
 	{
 		static int charIndexTable[128] =
 		{
@@ -168,9 +168,9 @@ public:
 
 	MacroEntity* Insert(const Token& name, const SourceRange& replacementRange);
 
-	MacroEntity* Find(const Token& name);
+	MacroEntity* Find(const Token& name) const;
 
-	bool IsDefined(const Token& name, MacroEntity** outDefinedMacro = nullptr);
+	bool IsDefined(const Token& name, MacroEntity** outDefinedMacro = nullptr) const;
 
 	uint64_t GetHashCode() const;
 
@@ -193,9 +193,14 @@ class MacroMapContainer
 {
 public:
 
+	MacroMapContainer()
+	{
+		m_core = &m_sharedEmpty;
+	}
+
 	MacroMap* Get()
 	{
-		if (m_core.IsNull() || m_core->GetRefCount() != 1)
+		if (m_core.GetObjectPtr() == &m_sharedEmpty || m_core->GetRefCount() != 1)
 		{
 			auto newCore = RefPtr<MacroMap>::MakeRef();
 			if (!m_core.IsNull())
@@ -213,8 +218,10 @@ public:
 	}
 
 
+
 private:
 	RefPtr<MacroMap>	m_core;
+	static MacroMap		m_sharedEmpty;
 };
 
 
@@ -267,7 +274,7 @@ public:
 	Preprocessor();
 
 	// 指定する MacroMap は開始時点のマクロ定義状態
-	ResultState BuildPreprocessedTokenList(Context* ownerContext, TokenList* tokenList, UnitFile* unitFile, const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap, DiagnosticsItemSet* diag);
+	ResultState BuildPreprocessedTokenList(Context* ownerContext, TokenList* tokenList, UnitFile* unitFile, const Array<TokenPathName>* additionalIncludePaths, const MacroMapContainer& parentMacroMap, DiagnosticsItemSet* diag);
 
 private:
 
@@ -312,6 +319,7 @@ private:
 	TokenList*					m_tokenList;
 	//PreprocessedFileCacheItem*	m_fileCache;
 	UnitFile*					m_unitFile;
+	MacroMapContainer			m_macroMap;
 	const Array<TokenPathName>* m_additionalIncludePaths;
 	DiagnosticsItemSet*			m_diag;
 

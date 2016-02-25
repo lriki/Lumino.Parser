@@ -38,7 +38,7 @@ public:
 	*/
 //	UnitFile* LookupCachedUnitFile(const TokenPathName& fileAbsPath, const CacheFileKey& key);
 
-	ResultState LookupPreprocessedIncludeFile(const TokenPathName& basePath, const TokenPathName& filePath, const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap, DiagnosticsItemSet* parentDiag, UnitFile** outFile);
+	ResultState LookupPreprocessedIncludeFile(const TokenPathName& basePath, const TokenPathName& filePath, const Array<TokenPathName>* additionalIncludePaths, const MacroMapContainer& parentMacroMap, DiagnosticsItemSet* parentDiag, UnitFile** outFile);
 
 	static uint64_t MakeCacheFileKey(const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap);
 

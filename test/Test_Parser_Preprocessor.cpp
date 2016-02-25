@@ -15,7 +15,7 @@ protected:
 	TokenListPtr m_tokens;
 
 	Array<PathName> m_additionalIncludePaths;
-	MacroMap m_definedMacros;
+	MacroMapContainer m_definedMacros;
 
 	virtual void SetUp() 
 	{
@@ -39,7 +39,7 @@ protected:
 		m_fileCache->Initialize(LN_LOCALFILE("test.c"));
 		m_buffer = ByteBuffer(code);
 		m_tokens = m_lex.Tokenize(m_buffer, &m_diag);
-		return m_prepro.BuildPreprocessedTokenList(&m_context, m_tokens, m_fileCache, &m_additionalIncludePaths, &m_definedMacros, &m_diag) == ResultState::Success;
+		return m_prepro.BuildPreprocessedTokenList(&m_context, m_tokens, m_fileCache, &m_additionalIncludePaths, m_definedMacros, &m_diag) == ResultState::Success;
 	}
 };
 //#error aaa

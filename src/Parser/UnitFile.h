@@ -23,10 +23,10 @@ public:
 	void SetTokenList(TokenListPtr tokenList) { m_tokenList = tokenList; }
 	TokenListPtr GetTokenList() const { m_tokenList; }
 
-	void CopyMacroMap(const MacroMap* macroMap);
+	//void CopyMacroMap(const MacroMap* macroMap);
 
-	void SetMacroMap(MacroMap* macroMap) { m_macroMap = macroMap; }
-	MacroMap* GetMacroMap() const { return m_macroMap; }
+	void SetMacroMap(const MacroMapContainer& macroMap) { m_macroMap = macroMap; }
+	MacroMapContainer* GetMacroMapPtr() { return &m_macroMap; }
 
 public:
 	SourceRange SaveMacroReplacementTokens(const Token* begin, const Token* end);	// キャッシュに保存すると再配置の可能性があるので、格納された場所はポインタではなくインデックスで返す
@@ -38,7 +38,8 @@ LN_INTERNAL_ACCESS:
 	TokenPathName		m_directoryAbsPath;	// m_fileAbsPath の parent。incldue ファイルの検索とかで頻繁に使うので、メモリ効率を考慮してあらかじめ取り出しておく
 	TokenListPtr		m_tokenList;
 
-	RefPtr<MacroMap>	m_macroMap;				// このファイルの中で定義されたマクロ。undef は undef として記録する
+	//RefPtr<MacroMap>	m_macroMap;				// このファイルの中で定義されたマクロ。undef は undef として記録する
+	MacroMapContainer	m_macroMap;
 	uint64_t			m_inputMacroMapHash;
 	Array<Token>		m_tokensCache;	// TODO: TokenList でもいい？
 	TokenBuffer			m_tokenBuffer;

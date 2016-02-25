@@ -16,12 +16,12 @@ namespace parser
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-ResultState Context::LookupPreprocessedIncludeFile(const TokenPathName& basePath, const TokenPathName& filePath, const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap, DiagnosticsItemSet* parentDiag, UnitFile** outFile)
+ResultState Context::LookupPreprocessedIncludeFile(const TokenPathName& basePath, const TokenPathName& filePath, const Array<TokenPathName>* additionalIncludePaths, const MacroMapContainer& parentMacroMap, DiagnosticsItemSet* parentDiag, UnitFile** outFile)
 {
 	LN_CHECK_ARGS_RETURNV(additionalIncludePaths != nullptr, ResultState::Error);
-	LN_CHECK_ARGS_RETURNV(macroMap != nullptr, ResultState::Error);
+	//LN_CHECK_ARGS_RETURNV(macroMap != nullptr, ResultState::Error);
 
-	uint64_t key = MakeCacheFileKey(additionalIncludePaths, macroMap);
+	uint64_t key = MakeCacheFileKey(additionalIncludePaths, parentMacroMap.GetConst());
 
 	auto itr = m_codeFileMap.find(key);
 	if (itr != m_codeFileMap.end())
@@ -78,7 +78,7 @@ ResultState Context::LookupPreprocessedIncludeFile(const TokenPathName& basePath
 
 		// プリプロセス
 		Preprocessor preprocessor;
-		LN_RESULT_CALL(preprocessor.BuildPreprocessedTokenList(this, tokens, codeFile, additionalIncludePaths, macroMap, parentDiag));
+		LN_RESULT_CALL(preprocessor.BuildPreprocessedTokenList(this, tokens, codeFile, additionalIncludePaths, parentMacroMap, parentDiag));
 		//codeFile->GetMacroMap()->SetFreeze(true);	// 確定。あとは変化しない
 
 		m_codeFileMap.insert({ key, codeFile });

@@ -17,16 +17,16 @@ void UnitFile::Initialize(const TokenPathName& fileAbsPath)
 {
 	LN_CHECK_ARGS_RETURN(fileAbsPath.IsAbsolute());
 	m_fileAbsPath = fileAbsPath;
-	m_macroMap = RefPtr<MacroMap>::MakeRef();
+	//m_macroMap = RefPtr<MacroMap>::MakeRef();
 }
 
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-void UnitFile::CopyMacroMap(const MacroMap* macroMap)
-{
-	m_macroMap->Copy(macroMap);
-}
+//void UnitFile::CopyMacroMap(const MacroMap* macroMap)
+//{
+//	m_macroMap->Copy(macroMap);
+//}
 
 //-----------------------------------------------------------------------------
 //

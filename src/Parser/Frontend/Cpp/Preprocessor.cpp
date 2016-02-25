@@ -159,7 +159,7 @@ MacroEntity* MacroMap::Insert(const Token& name, const SourceRange& replacementR
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-MacroEntity* MacroMap::Find(const Token& name)
+MacroEntity* MacroMap::Find(const Token& name) const
 {
 	MacroEntity* e;
 	if (m_macroMap.Find(name.GetBegin(), name.GetEnd(), &e, CaseSensitivity::CaseSensitive))	// TODO: 大文字小文字
@@ -171,7 +171,7 @@ MacroEntity* MacroMap::Find(const Token& name)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-bool MacroMap::IsDefined(const Token& name, MacroEntity** outDefinedMacro)
+bool MacroMap::IsDefined(const Token& name, MacroEntity** outDefinedMacro) const
 {
 	MacroEntity* e = Find(name);
 	if (e != nullptr)
@@ -205,6 +205,11 @@ void MacroMap::Copy(const MacroMap* srcMacroMap)
 	m_allMacroList = srcMacroMap->m_allMacroList;
 	m_macroMap.Copy(srcMacroMap->m_macroMap);
 }
+
+//=============================================================================
+// MacroMapContainer
+//=============================================================================
+MacroMap	MacroMapContainer::m_sharedEmpty;
 
 //=============================================================================
 // Preprocessor
@@ -254,7 +259,7 @@ Preprocessor::Preprocessor()
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-ResultState Preprocessor::BuildPreprocessedTokenList(Context* ownerContext, TokenList* tokenList, UnitFile* unitFile, const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap, DiagnosticsItemSet* diag)
+ResultState Preprocessor::BuildPreprocessedTokenList(Context* ownerContext, TokenList* tokenList, UnitFile* unitFile, const Array<TokenPathName>* additionalIncludePaths, const MacroMapContainer& parentMacroMap, DiagnosticsItemSet* diag)
 {
 	m_ownerContext = ownerContext;
 	m_tokenList = tokenList;
@@ -266,7 +271,8 @@ ResultState Preprocessor::BuildPreprocessedTokenList(Context* ownerContext, Toke
 
 	// このファイルの解析開始時点のマクロ定義を設定。
 	// CodeFile は固有の MacroMap を持たなければキャッシュする意味がないので、参照ではなくコピーする必要がある。
-	m_unitFile->CopyMacroMap(macroMap);
+	//m_unitFile->CopyMacroMap(macroMap);
+	m_macroMap = parentMacroMap;
 
 	int tokenCount = m_tokenList->GetCount();
 	for (int iToken = 0; iToken < tokenCount; ++iToken)
@@ -418,7 +424,8 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 
 		// マクロ登録
 		// TODO: マクロの上書き確認
-		m_unitFile->m_macroMap->Insert(*macroName, range);
+		//m_unitFile->m_macroMap->Insert(*macroName, range);
+		m_macroMap.Get()->Insert(*macroName, range);
 	}
 	//---------------------------------------------------------
 	// #if
@@ -452,7 +459,7 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 		LN_DIAG_REPORT_ERROR(pos->GetCommonType() == CommonTokenType::Identifier, DiagnosticsCode::Preprocessor_SyntaxError);
 
 		// 現時点でマクロが定義されているかチェック
-		bool isDefined = m_unitFile->m_macroMap->IsDefined(*pos);
+		bool isDefined = m_macroMap.GetConst()->IsDefined(*pos);
 
 		// "ifndef" なら条件を反転
 		if (keyword->GetLength() == 6) {
@@ -608,7 +615,7 @@ ResultState Preprocessor::AnalyzeIfElifDirective(Token* keyword, Token* lineEnd,
 				}
 
 				// マクロを探す
-				if (m_unitFile->m_macroMap->IsDefined(*ident)) {
+				if (m_macroMap.GetConst()->IsDefined(*ident)) {
 					m_preproExprTokenList.Add(m_constTokenBuffer.Get1());	// "1" に展開
 				}
 				else {
@@ -623,7 +630,7 @@ ResultState Preprocessor::AnalyzeIfElifDirective(Token* keyword, Token* lineEnd,
 				++pos;
 			}
 			// マクロかも
-			else if (m_unitFile->m_macroMap->IsDefined(*pos, &definedMacro))
+			else if (m_macroMap.GetConst()->IsDefined(*pos, &definedMacro))
 			{
 				const Token* begin;
 				const Token* end;
@@ -692,10 +699,10 @@ ResultState Preprocessor::AnalyzeIncludeDirective(Token* keyword, Token* lineEnd
 	// プリプロセス済みのトークンリストを持ったコードを探す (見つかり次第、プリプロ解析が行われる。再帰。)
 	TokenPathName filePath(TokenStringRef(pathBegin, pathEnd));
 	UnitFile* includeFile;
-	LN_RESULT_CALL(m_ownerContext->LookupPreprocessedIncludeFile(m_unitFile->GetDirectoryPath(), filePath, m_additionalIncludePaths, m_unitFile->GetMacroMap(), m_diag, &includeFile));
+	LN_RESULT_CALL(m_ownerContext->LookupPreprocessedIncludeFile(m_unitFile->GetDirectoryPath(), filePath, m_additionalIncludePaths, m_macroMap, m_diag, &includeFile));
 
 	// マクロマップを付け替える
-	m_unitFile->SetMacroMap(includeFile->GetMacroMap());
+	m_unitFile->SetMacroMap(*includeFile->GetMacroMapPtr());
 
 	return ResultState::Success;
 }
