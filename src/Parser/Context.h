@@ -1,5 +1,6 @@
 
 #pragma once
+#include <unordered_map>
 #include "Common.h"
 #include "Frontend\Cpp\Preprocessor.h"
 
@@ -12,7 +13,6 @@ class CompileOptions
 public:
 
 
-private:
 	Array<TokenPathName>	m_additionalIncludePaths;	// 追加のインクルードディレクトリ
 	RefPtr<MacroMap>		m_preprocessorDefinitions;	// 定義済みマクロ (解析開始時の MacroMap)
 	
@@ -20,19 +20,32 @@ private:
 	//CompileOptions*	m_parent;
 };
 
+//struct CacheFileKey
+//{
+//	uint64_t	includePathsKey = 0;
+//	uint64_t	definedMacrosKey = 0;
+//};
+
 class Context
 	: public RefObject
 {
 public:
 	// TODO: コンパイラオプションのインクルードファイルの検索パスの並びも一致している必要がある。
 	/*
-		何かファイルがほしいときは基本的にこの関数を通す。
+		何か解析済みのファイルがほしいときはこの関数を使う。
 		.c などのコンパイル単位となるファイルは、コンパイルオプションでキーを指定。
 		.h などのインクルードファイルは#include時点のマクロでキーを指定。
 	*/
-	UnitFile* LookupUnitFile(const PathName& fileAbsPath, uint64_t macroMapHash);
+//	UnitFile* LookupCachedUnitFile(const TokenPathName& fileAbsPath, const CacheFileKey& key);
+
+	ResultState LookupPreprocessedIncludeFile(const TokenPathName& basePath, const TokenPathName& filePath, const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap, DiagnosticsItemSet* parentDiag, UnitFile** outFile);
+
+	static uint64_t MakeCacheFileKey(const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap);
 
 	// FontendContext/AnalayzerContext 分けたほうがいい？
+
+private:
+	std::unordered_map<uint64_t, UnitFilePtr>	m_codeFileMap;
 };
 
 } // namespace Parser

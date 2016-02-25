@@ -30,7 +30,7 @@ public:
 	IdentifierMap()
 		: m_table1(nullptr)
 	{
-		m_table1 = LN_NEW Item[MaxKeyFirstCount * MaxKeyLastCount * MaxKeyLength];
+		m_table1 = LN_NEW Item[TotalTableSize];
 	}
 
 	virtual ~IdentifierMap()
@@ -84,6 +84,12 @@ public:
 		return false;
 	}
 
+	void Copy(const IdentifierMap& srcMap)
+	{
+		memcpy(m_table1, srcMap.m_table1, TotalTableSize);
+		m_table2 = srcMap.m_table2;
+	}
+
 public:
 
 	/*
@@ -102,6 +108,7 @@ public:
 	static const int MaxKeyFirstCount = 64;
 	static const int MaxKeyLastCount = 64;
 	static const int MaxKeyLength = 64;
+	static const int TotalTableSize = MaxKeyFirstCount * MaxKeyLastCount * MaxKeyLength;
 
 	struct Item
 	{
@@ -157,6 +164,8 @@ class MacroMap
 	: public RefObject
 {
 public:
+	MacroMap();
+
 	MacroEntity* Insert(const Token& name, const SourceRange& replacementRange);
 
 	MacroEntity* Find(const Token& name);
@@ -165,10 +174,49 @@ public:
 
 	uint64_t GetHashCode() const;
 
+	void Copy(const MacroMap* srcMacroMap);
+
+	//void SetFreeze(bool enabled) { m_freeze = enabled; }
+	//bool IsFreeze() const { return m_freeze; }
+
 private:
 	Array<MacroEntity>			m_allMacroList;	// 過去に定義された全てのマクロ
 	IdentifierMap<MacroEntity*>	m_macroMap;		// 再定義されたりしたものは一番新しいマクロが格納される
+	//bool						m_freeze;		// 変更禁止フラグ
 };
+
+// COW 共有の支援
+//		# が1つも無い include ファイルのために MacroMap を作ったりするとメモリ効率が悪くなる。
+//		include ファイルの解析開始で MAcroMap をコピーするか終了時にするかとか考えると複雑になったりする。
+//		本当に必要なタイミングでコピーを作るためにこのクラスを用意した。
+class MacroMapContainer
+{
+public:
+
+	MacroMap* Get()
+	{
+		if (m_core.IsNull() || m_core->GetRefCount() != 1)
+		{
+			auto newCore = RefPtr<MacroMap>::MakeRef();
+			if (!m_core.IsNull())
+			{
+				newCore->Copy(m_core);
+			}
+		}
+		return m_core;
+	}
+
+
+	const MacroMap* GetConst() const
+	{
+		return m_core;
+	}
+
+
+private:
+	RefPtr<MacroMap>	m_core;
+};
+
 
 class RawReferenceMap
 {
@@ -218,7 +266,8 @@ class Preprocessor
 public:
 	Preprocessor();
 
-	ResultState BuildPreprocessedTokenList(TokenList* tokenList, UnitFile* unitFile/*PreprocessedFileCacheItem* outFileCache*/, DiagnosticsItemSet* diag);
+	// 指定する MacroMap は開始時点のマクロ定義状態
+	ResultState BuildPreprocessedTokenList(Context* ownerContext, TokenList* tokenList, UnitFile* unitFile, const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap, DiagnosticsItemSet* diag);
 
 private:
 
@@ -258,10 +307,12 @@ private:
 		bool					elseProcessed = false;					// #else受付後はtrue(#else～#else防止の為)
 	};
 
+	Context*					m_ownerContext;
 	ConstantTokenBuffer			m_constTokenBuffer;
 	TokenList*					m_tokenList;
 	//PreprocessedFileCacheItem*	m_fileCache;
 	UnitFile*					m_unitFile;
+	const Array<TokenPathName>* m_additionalIncludePaths;
 	DiagnosticsItemSet*			m_diag;
 
 	DirectiveSec				m_seqDirective;

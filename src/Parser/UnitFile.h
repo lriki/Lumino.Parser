@@ -8,7 +8,7 @@ LN_NAMESPACE_BEGIN
 namespace parser
 {
 
-// .cpp や .h、1つの解析単位となるファイル
+// .cpp や .h、1つの解析単位となるファイル。パス名と LocationStateKey によって辞書管理。
 // TODO: CodeFile とかの名前のほうがいいかな？
 class UnitFile
 	: public RefObject
@@ -20,6 +20,13 @@ public:
 	const TokenPathName& GetFilePath() const { return m_fileAbsPath; }
 	const TokenPathName& GetDirectoryPath() const { return m_directoryAbsPath; }
 
+	void SetTokenList(TokenListPtr tokenList) { m_tokenList = tokenList; }
+	TokenListPtr GetTokenList() const { m_tokenList; }
+
+	void CopyMacroMap(const MacroMap* macroMap);
+
+	void SetMacroMap(MacroMap* macroMap) { m_macroMap = macroMap; }
+	MacroMap* GetMacroMap() const { return m_macroMap; }
 
 public:
 	SourceRange SaveMacroReplacementTokens(const Token* begin, const Token* end);	// キャッシュに保存すると再配置の可能性があるので、格納された場所はポインタではなくインデックスで返す

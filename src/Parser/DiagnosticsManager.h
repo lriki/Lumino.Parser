@@ -36,6 +36,7 @@ enum class DiagnosticsCode
 	Preprocessor_UnexpectedElif				= Severity_Error | PreprocessorGroup | 6,	/**< 予期しない #elif が見つかりました。*/
 	Preprocessor_ExpectedDefinedId			= Severity_Error | PreprocessorGroup | 7,	/**< defined の後に識別子が必要です。*//* C2003 expected 'defined id' */
 	Preprocessor_InvalidHeaderName			= Severity_Error | PreprocessorGroup | 8,	/**< ヘッダ名が無効です。*/
+	Preprocessor_IncludeFileNotFount		= Severity_Error | PreprocessorGroup | 9,	/**< include ファイルを開けません。{0} */
 };
 
 enum class SeverityLevel

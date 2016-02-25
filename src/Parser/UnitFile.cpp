@@ -23,6 +23,14 @@ void UnitFile::Initialize(const TokenPathName& fileAbsPath)
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
+void UnitFile::CopyMacroMap(const MacroMap* macroMap)
+{
+	m_macroMap->Copy(macroMap);
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
 SourceRange UnitFile::SaveMacroReplacementTokens(const Token* begin, const Token* end)
 {
 	SourceRange range;

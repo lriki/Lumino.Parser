@@ -103,6 +103,7 @@
 #include "../../DiagnosticsManager.h"
 #include "../../ParserUtils.h"
 #include "../../UnitFile.h"
+#include "../../Context.h"
 #include "CppLexer.h"
 #include "Preprocessor.h"
 
@@ -132,8 +133,18 @@ namespace parser
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
+MacroMap::MacroMap()
+	//: m_freeze(false)
+{
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
 MacroEntity* MacroMap::Insert(const Token& name, const SourceRange& replacementRange)
 {
+	////LN_THROW(!IsFreeze(), InvalidOperationException);
+
 	MacroEntity macro;
 	macro.name = name.ToString();
 	macro.replacementRange = replacementRange;
@@ -184,6 +195,17 @@ uint64_t MacroMap::GetHashCode() const
 	return value + m_allMacroList.GetCount();	// ついでに個数でもいれておこうか
 }
 
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+void MacroMap::Copy(const MacroMap* srcMacroMap)
+{
+	//LN_THROW(!IsFreeze(), InvalidOperationException);
+
+	m_allMacroList = srcMacroMap->m_allMacroList;
+	m_macroMap.Copy(srcMacroMap->m_macroMap);
+}
+
 //=============================================================================
 // Preprocessor
 //=============================================================================
@@ -232,13 +254,19 @@ Preprocessor::Preprocessor()
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-ResultState Preprocessor::BuildPreprocessedTokenList(TokenList* tokenList, UnitFile* unitFile, DiagnosticsItemSet* diag)
+ResultState Preprocessor::BuildPreprocessedTokenList(Context* ownerContext, TokenList* tokenList, UnitFile* unitFile, const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap, DiagnosticsItemSet* diag)
 {
+	m_ownerContext = ownerContext;
 	m_tokenList = tokenList;
 	m_unitFile = unitFile;
+	m_additionalIncludePaths = additionalIncludePaths;
 	m_diag = diag;
 	m_seqDirective = DirectiveSec::LineHead;
 	m_conditionalSectionStack.Clear();
+
+	// このファイルの解析開始時点のマクロ定義を設定。
+	// CodeFile は固有の MacroMap を持たなければキャッシュする意味がないので、参照ではなくコピーする必要がある。
+	m_unitFile->CopyMacroMap(macroMap);
 
 	int tokenCount = m_tokenList->GetCount();
 	for (int iToken = 0; iToken < tokenCount; ++iToken)
@@ -659,10 +687,15 @@ ResultState Preprocessor::AnalyzeIncludeDirective(Token* keyword, Token* lineEnd
 	const TokenChar* pathEnd = pos->GetEnd() - 1;
 
 	// m_unitFile を基準に絶対パスにする。もし pathBegin～ が絶対パスならそれがそのまま使われる
-	TokenPathName absPath(m_unitFile->GetDirectoryPath(), TokenStringRef(pathBegin, pathEnd));
+	//TokenPathName absPath(m_unitFile->GetDirectoryPath(), TokenStringRef(pathBegin, pathEnd));
 
-	printf(absPath.c_str());
+	// プリプロセス済みのトークンリストを持ったコードを探す (見つかり次第、プリプロ解析が行われる。再帰。)
+	TokenPathName filePath(TokenStringRef(pathBegin, pathEnd));
+	UnitFile* includeFile;
+	LN_RESULT_CALL(m_ownerContext->LookupPreprocessedIncludeFile(m_unitFile->GetDirectoryPath(), filePath, m_additionalIncludePaths, m_unitFile->GetMacroMap(), m_diag, &includeFile));
 
+	// マクロマップを付け替える
+	m_unitFile->SetMacroMap(includeFile->GetMacroMap());
 
 	return ResultState::Success;
 }

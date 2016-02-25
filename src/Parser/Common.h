@@ -10,10 +10,13 @@ typedef GenericString<TokenChar> TokenString;
 typedef GenericStringRef<TokenChar> TokenStringRef;
 typedef GenericPathName<TokenChar> TokenPathName;
 
+class Context;
+class CompileOptions;
 class UnitFile;
 class TokenBuffer;
 class TokenList;
-typedef RefPtr<TokenList> TokenListPtr;
+typedef RefPtr<TokenList>	TokenListPtr;
+typedef RefPtr<UnitFile>	UnitFilePtr;
 
 class DiagnosticsItemSet;
 

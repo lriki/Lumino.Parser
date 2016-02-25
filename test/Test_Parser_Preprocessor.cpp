@@ -1,18 +1,28 @@
 #include "TestConfig.h"
+#include "../src/Parser/Context.h"
 #include "../src/Parser/Frontend/Cpp/Preprocessor.h"
 
 class Test_Parser_Preprocessor : public ::testing::Test
 {
 protected:
-	virtual void SetUp() {}
-	virtual void TearDown() {}
-
+	Context m_context;
 	ByteBuffer m_buffer;
 	CppLexer m_lex;
 	Preprocessor m_prepro;
 	RefPtr<UnitFile> m_fileCache;
+	CompileOptions m_compileOptions;
 	DiagnosticsItemSet m_diag;
 	TokenListPtr m_tokens;
+
+	Array<PathName> m_additionalIncludePaths;
+	MacroMap m_definedMacros;
+
+	virtual void SetUp() 
+	{
+		m_additionalIncludePaths.Add(LN_LOCALFILE("TestData"));
+	}
+	virtual void TearDown() {}
+
 
 	void Preprocess(const char* code)
 	{
@@ -29,7 +39,7 @@ protected:
 		m_fileCache->Initialize(LN_LOCALFILE("test.c"));
 		m_buffer = ByteBuffer(code);
 		m_tokens = m_lex.Tokenize(m_buffer, &m_diag);
-		return m_prepro.BuildPreprocessedTokenList(m_tokens, m_fileCache, &m_diag) == ResultState::Success;
+		return m_prepro.BuildPreprocessedTokenList(&m_context, m_tokens, m_fileCache, &m_additionalIncludePaths, &m_definedMacros, &m_diag) == ResultState::Success;
 	}
 };
 //#error aaa
@@ -518,9 +528,13 @@ TEST_F(Test_Parser_Preprocessor, Basic_else)
 //-----------------------------------------------------------------------------
 TEST_F(Test_Parser_Preprocessor, Unit_include)
 {
+	// <Test> include ファイル内のマクロ定義が取り出せる。
 	{
 		const char* code =
-			"#include \"test.h\"";
+			"#include \"test.h\"\n"
+			"#ifdef TEST\n"
+			"1\n"
+			"#endif";
 		Preprocess(code);
 		ASSERT_EQ(true, m_tokens->GetAt(10).IsValid());
 	}
