@@ -98,6 +98,26 @@
 
 		本ライブラリとしては通常の識別子扱いし、defined=0で解釈する。
 		その結果 0(1) という展開結果になるため式の解析でエラーが出ることになる。
+
+	■ #pragma once について
+		VisualC++ のは本当に単純に、同パスのファイルを incluide しないようにするだけ。
+		マクロ定義が変わるとかは関係ない。
+		次の結果は、"1"が2つ出力される。
+		```````````````````````````````.h
+		#pragma once
+		#ifdef AAA
+		#define BBB 2
+		#else
+		#define BBB 1
+		#endif
+		```````````````````````````````
+		```````````````````````````````.cpp
+		#include "Header.h"
+			printf("%d\n", BBB);	// 1
+		#define AAA
+		#include "Header.h"
+			printf("%d\n", BBB);	// 1
+		```````````````````````````````
 */
 #include "../../Internal.h"
 #include "../../DiagnosticsManager.h"
@@ -244,6 +264,12 @@ MacroMap	MacroMapContainer::m_sharedEmpty;
 //
 //=============================================================================
 // Preprocessor
+//-----------------------------------------------------------------------------
+/*
+	このクラスと CompileUnitFile は同じクラスとしてまとめないの？
+	→	Preprocessor は処理担当。一時データをたくさんメンバ変数に保持する。
+		CompileUnitFile は解析データの保持担当。
+*/
 //=============================================================================
 
 //-----------------------------------------------------------------------------
@@ -259,15 +285,17 @@ Preprocessor::Preprocessor()
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-ResultState Preprocessor::BuildPreprocessedTokenList(Context* ownerContext, TokenList* tokenList, UnitFile* unitFile, const Array<TokenPathName>* additionalIncludePaths, const MacroMapContainer& parentMacroMap, DiagnosticsItemSet* diag)
+ResultState Preprocessor::BuildPreprocessedTokenList(Context* ownerContext, CompileUnitFile* compileUnitFile, TokenList* tokenList, UnitFile* unitFile, const Array<TokenPathName>* additionalIncludePaths, const MacroMapContainer& parentMacroMap, DiagnosticsItemSet* diag)
 {
 	m_ownerContext = ownerContext;
 	m_tokenList = tokenList;
+	m_compileUnitFile = compileUnitFile;
 	m_unitFile = unitFile;
 	m_additionalIncludePaths = additionalIncludePaths;
 	m_diag = diag;
 	m_seqDirective = DirectiveSec::LineHead;
 	m_conditionalSectionStack.Clear();
+	m_foundPragmaOnce = false;
 
 	// このファイルの解析開始時点のマクロ定義を設定。
 	// CodeFile は固有の MacroMap を持たなければキャッシュする意味がないので、参照ではなくコピーする必要がある。
@@ -357,6 +385,14 @@ ResultState Preprocessor::BuildPreprocessedTokenList(Context* ownerContext, Toke
 			}
 		}
 	}
+
+	// Error: #endif が無かった
+	if (!m_conditionalSectionStack.IsEmpty())
+	{
+		m_diag->Report(DiagnosticsCode::Preprocessor_NoExistsEndif);
+		return ResultState::Error;
+	}
+
 	return ResultState::Success;
 }
 
@@ -534,6 +570,13 @@ ResultState Preprocessor::PollingDirectiveLine(Token* keyword, Token* lineEnd)
 	{
 		AnalyzeIncludeDirective(keyword, lineEnd);
 	}
+	//---------------------------------------------------------
+	// #pragma
+	//		:: # pragma pp-tokensopt new-line
+	else if (keyword->EqualString("pragma", 6))
+	{
+		AnalyzePragmaDirective(keyword, lineEnd);
+	}
 
 	return ResultState::Success;
 }
@@ -698,11 +741,32 @@ ResultState Preprocessor::AnalyzeIncludeDirective(Token* keyword, Token* lineEnd
 
 	// プリプロセス済みのトークンリストを持ったコードを探す (見つかり次第、プリプロ解析が行われる。再帰。)
 	TokenPathName filePath(TokenStringRef(pathBegin, pathEnd));
-	UnitFile* includeFile;
-	LN_RESULT_CALL(m_ownerContext->LookupPreprocessedIncludeFile(m_unitFile->GetDirectoryPath(), filePath, m_additionalIncludePaths, m_macroMap, m_diag, &includeFile));
+	IncludeFile* includeFile;
+	LN_RESULT_CALL(m_ownerContext->LookupPreprocessedIncludeFile(m_compileUnitFile, m_unitFile->GetDirectoryPath(), filePath, m_additionalIncludePaths, m_macroMap, m_diag, &includeFile));
+
+	// include したファイルとして記憶
+	m_compileUnitFile->includedFiles.Add(includeFile);
 
 	// マクロマップを付け替える
 	m_unitFile->SetMacroMap(*includeFile->GetMacroMapPtr());
+
+	return ResultState::Success;
+}
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+ResultState Preprocessor::AnalyzePragmaDirective(Token* keyword, Token* lineEnd)
+{
+	// 空白類を飛ばす
+	Token* pos = ParserUtils::SkipNextSpaceOrComment(keyword, lineEnd);
+	if (pos->GetCommonType() == CommonTokenType::Identifier)
+	{
+		if (pos->EqualString("once", 4))
+		{
+			m_foundPragmaOnce = true;
+		}
+	}
 
 	return ResultState::Success;
 }

@@ -36,7 +36,7 @@ static int g_alphaNumTypeTable[256] =
 //-----------------------------------------------------------------------------
 ResultState Lexer::Tokenize(UnitFile* file, DiagnosticsItemSet* diag)
 {
-	ByteBuffer buffer = FileSystem::ReadAllBytes(file->GetFilePath());
+	ByteBuffer buffer = FileSystem::ReadAllBytes(file->GetAbsolutePath());
 	file->m_tokenList = Tokenize(buffer, diag);
 	return ResultState::Success;	// TODO
 }
@@ -107,10 +107,11 @@ void Lexer::PollingToken(const Token& newToken)
 //-----------------------------------------------------------------------------
 AlphaNumTypeFlags Lexer::GetAlphaNumType(TokenChar ch)
 {
-	if (ch > 255) {
+	uint8_t uc = (uint8_t)ch;
+	if (uc > 255) {
 		return AlphaNumTypeFlags::MBC;	// wchar_t 型の多バイトコード
 	}
-	return (AlphaNumTypeFlags::enum_type)g_alphaNumTypeTable[ch];
+	return (AlphaNumTypeFlags::enum_type)g_alphaNumTypeTable[uc];
 }
 
 //-----------------------------------------------------------------------------

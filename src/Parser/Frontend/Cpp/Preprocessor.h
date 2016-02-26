@@ -274,13 +274,14 @@ public:
 	Preprocessor();
 
 	// 指定する MacroMap は開始時点のマクロ定義状態
-	ResultState BuildPreprocessedTokenList(Context* ownerContext, TokenList* tokenList, UnitFile* unitFile, const Array<TokenPathName>* additionalIncludePaths, const MacroMapContainer& parentMacroMap, DiagnosticsItemSet* diag);
+	ResultState BuildPreprocessedTokenList(Context* ownerContext, CompileUnitFile* compileUnitFile, TokenList* tokenList, UnitFile* unitFile, const Array<TokenPathName>* additionalIncludePaths, const MacroMapContainer& parentMacroMap, DiagnosticsItemSet* diag);
 
 private:
 
 	ResultState PollingDirectiveLine(Token* keyword, Token* lineEnd);
 	ResultState AnalyzeIfElifDirective(Token* keyword, Token* lineEnd, bool isElse);
 	ResultState AnalyzeIncludeDirective(Token* keyword, Token* lineEnd);
+	ResultState AnalyzePragmaDirective(Token* keyword, Token* lineEnd);
 
 	bool IsInValidSection() const;
 
@@ -318,6 +319,7 @@ private:
 	ConstantTokenBuffer			m_constTokenBuffer;
 	TokenList*					m_tokenList;
 	//PreprocessedFileCacheItem*	m_fileCache;
+	CompileUnitFile*			m_compileUnitFile;
 	UnitFile*					m_unitFile;
 	MacroMapContainer			m_macroMap;
 	const Array<TokenPathName>* m_additionalIncludePaths;
@@ -332,6 +334,8 @@ private:
 	RpnEvaluator				m_rpnEvaluator;
 
 	Array<Token*>				m_funcMacroParams;
+
+	bool						m_foundPragmaOnce;
 };
 
 } // namespace Parser

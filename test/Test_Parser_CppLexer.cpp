@@ -157,6 +157,17 @@ TEST_F(Test_Parser_CppLexer, Basic)
 		ASSERT_EQ(CommonTokenType::StringLiteral , tokens->GetAt(3).GetCommonType());
 		ASSERT_EQ(CommonTokenType::Eof, tokens->GetAt(4).GetCommonType());
 	}
+	// <Test> #pragma
+	{
+		CppLexer lex;
+		auto tokens = lex.Tokenize("#pragma xxx yyy\n", &diag);
+		ASSERT_EQ(CommonTokenType::Operator, tokens->GetAt(0).GetCommonType());
+		ASSERT_EQ(CommonTokenType::Identifier, tokens->GetAt(1).GetCommonType());
+		ASSERT_EQ(CommonTokenType::SpaceSequence, tokens->GetAt(2).GetCommonType());
+		ASSERT_EQ(CommonTokenType::TextTokens, tokens->GetAt(3).GetCommonType()); ASSERT_EQ(TT_PPTokens, tokens->GetAt(3).GetLangTokenType());
+		ASSERT_EQ(CommonTokenType::NewLine, tokens->GetAt(4).GetCommonType());
+		ASSERT_EQ(CommonTokenType::Eof, tokens->GetAt(5).GetCommonType());
+	}
 	// <Test> キーワード
 	{
 		CppLexer lex;

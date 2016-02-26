@@ -9,7 +9,7 @@ protected:
 	ByteBuffer m_buffer;
 	CppLexer m_lex;
 	Preprocessor m_prepro;
-	RefPtr<UnitFile> m_fileCache;
+	RefPtr<CompileUnitFile> m_fileCache;
 	CompileOptions m_compileOptions;
 	DiagnosticsItemSet m_diag;
 	TokenListPtr m_tokens;
@@ -34,12 +34,13 @@ protected:
 
 	bool TryPreprocess(const char* code)
 	{
+		m_context.Clear();
 		m_diag.ClearItems();
-		m_fileCache = RefPtr<UnitFile>::MakeRef();
+		m_fileCache = RefPtr<CompileUnitFile>::MakeRef();
 		m_fileCache->Initialize(LN_LOCALFILE("test.c"));
 		m_buffer = ByteBuffer(code);
 		m_tokens = m_lex.Tokenize(m_buffer, &m_diag);
-		return m_prepro.BuildPreprocessedTokenList(&m_context, m_tokens, m_fileCache, &m_additionalIncludePaths, m_definedMacros, &m_diag) == ResultState::Success;
+		return m_prepro.BuildPreprocessedTokenList(&m_context, m_fileCache, m_tokens, m_fileCache, &m_additionalIncludePaths, m_definedMacros, &m_diag) == ResultState::Success;
 	}
 };
 //#error aaa
@@ -538,7 +539,48 @@ TEST_F(Test_Parser_Preprocessor, Unit_include)
 		Preprocess(code);
 		ASSERT_EQ(true, m_tokens->GetAt(10).IsValid());
 	}
+	// <Test>
+	{
+		const char* code =
+			"#include \"IncludeTest1.h\"\n"
+			"#ifdef CCC\n"
+			"1\n"
+			"#endif\n"
+			"#ifdef BBB\n"
+			"1\n"
+			"#endif\n"
+			"#define AAA"
+			"#include \"IncludeTest1.h\"\n"
+			"#ifdef BBB\n"
+			"1\n"
+			"#endif";
+		Preprocess(code);
+		ASSERT_EQ(true, m_tokens->GetAt(10).IsValid());
+		ASSERT_EQ(false, m_tokens->GetAt(20).IsValid());
+		ASSERT_EQ(true, m_tokens->GetAt(36).IsValid());
+	}
+}
 
+
+//-----------------------------------------------------------------------------
+TEST_F(Test_Parser_Preprocessor, Unit_pragma_once)
+{
+	// <Test> #pragma once
+	{
+		const char* code =
+			"#include \"pragma_once.h\"\n"
+			"#ifdef BBB\n"
+			"1\n"
+			"#endif\n"
+			"#define AAA"
+			"#include \"pragma_once.h\"\n"
+			"#ifdef BBB\n"
+			"1\n"
+			"#endif";
+		Preprocess(code);
+		ASSERT_EQ(true, m_tokens->GetAt(10).IsValid());
+		// 1 ‚Í–³Œø—Ìˆæ
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -585,17 +627,23 @@ TEST_F(Test_Parser_Preprocessor, Illigal)
 		ASSERT_EQ(false, TryPreprocess(code));
 		ASSERT_EQ(DiagnosticsCode::Preprocessor_UnexpectedElse, m_diag.GetItems()->GetAt(0).GetCode());
 	}
-	// <Illigal> #if ‚Ì‚Ü‚¦‚É #endif ‚ª—ˆ‚½
+	// <Illigal> #if ‚Ì‘O‚É #endif ‚ª—ˆ‚½
 	{
 		const char* code =
 			"#endif";
 		ASSERT_EQ(false, TryPreprocess(code));
 		ASSERT_EQ(DiagnosticsCode::Preprocessor_UnexpectedEndif, m_diag.GetItems()->GetAt(0).GetCode());
 	}
-	// <Illigal> #if ‚Ì‚Ü‚¦‚É #elif ‚ª—ˆ‚½
+	// <Illigal> #if ‚Ì‘O‚É #elif ‚ª—ˆ‚½
 	{
 		const char* code = "#elif\n";
 		ASSERT_EQ(false, TryPreprocess(code));
 		ASSERT_EQ(DiagnosticsCode::Preprocessor_UnexpectedElif, m_diag.GetItems()->GetAt(0).GetCode());
+	}
+	// <Illigal> #if Œn‚É‘Î‰ž‚·‚é #endif ‚ªŒ©‚Â‚©‚ç‚È‚©‚Á‚½B
+	{
+		const char* code = "#if 1\n";
+		ASSERT_EQ(false, TryPreprocess(code));
+		ASSERT_EQ(DiagnosticsCode::Preprocessor_NoExistsEndif, m_diag.GetItems()->GetAt(0).GetCode());
 	}
 }

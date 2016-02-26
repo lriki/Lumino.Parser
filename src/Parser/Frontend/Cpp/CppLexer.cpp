@@ -153,8 +153,9 @@ void CppLexer::PollingToken(const Token& token)
 			//m_seqPPDirective = PPDirectiveSeq::Idle;		// #" 以外のトークンだった。"include" 以外のプリプロディレクティブ。
 		}
 	}
-	// include ～ 行末
-	else if (m_seqPPDirective == PPDirectiveSeq::ReadingPPHeaderName)
+	// ～ 行末
+	else if (m_seqPPDirective == PPDirectiveSeq::ReadingPPHeaderName ||
+			 m_seqPPDirective == PPDirectiveSeq::ReadingPPTokens)
 	{
 		if (token.GetCommonType() == CommonTokenType::NewLine)
 		{
@@ -1082,6 +1083,7 @@ int CppLexer::ReadPPTokens(const Range& buffer, ReadResult* outResult)
 		++r.pos;
 	}
 
+	outResult->Set(m_tokenBuffer->CreateToken(CommonTokenType::TextTokens, buffer.pos, r.pos, TT_PPTokens));
 	return r.pos - buffer.pos;
 }
 

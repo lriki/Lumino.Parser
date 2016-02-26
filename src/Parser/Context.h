@@ -30,6 +30,8 @@ class Context
 	: public RefObject
 {
 public:
+	void Clear();
+
 	// TODO: コンパイラオプションのインクルードファイルの検索パスの並びも一致している必要がある。
 	/*
 		何か解析済みのファイルがほしいときはこの関数を使う。
@@ -38,14 +40,14 @@ public:
 	*/
 //	UnitFile* LookupCachedUnitFile(const TokenPathName& fileAbsPath, const CacheFileKey& key);
 
-	ResultState LookupPreprocessedIncludeFile(const TokenPathName& basePath, const TokenPathName& filePath, const Array<TokenPathName>* additionalIncludePaths, const MacroMapContainer& parentMacroMap, DiagnosticsItemSet* parentDiag, UnitFile** outFile);
+	ResultState LookupPreprocessedIncludeFile(CompileUnitFile* rootCompileUnitFile, const TokenPathName& basePath, const TokenPathName& filePath, const Array<TokenPathName>* additionalIncludePaths, const MacroMapContainer& parentMacroMap, DiagnosticsItemSet* parentDiag, IncludeFile** outFile);
 
-	static uint64_t MakeCacheFileKey(const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap);
+	static uint64_t MakeCacheFileKey(const PathName& includeFilePath, const Array<TokenPathName>* additionalIncludePaths, const MacroMap* macroMap);
 
 	// FontendContext/AnalayzerContext 分けたほうがいい？
 
 private:
-	std::unordered_map<uint64_t, UnitFilePtr>	m_codeFileMap;
+	std::unordered_map<uint64_t, IncludeFilePtr>	m_codeFileMap;
 };
 
 } // namespace Parser

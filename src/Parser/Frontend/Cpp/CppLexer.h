@@ -182,6 +182,7 @@ enum CppTokenType
 
 
 	TT_EscapeNewLine,
+	TT_PPTokens,
 };
 
 

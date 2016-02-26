@@ -13,10 +13,13 @@ typedef GenericPathName<TokenChar> TokenPathName;
 class Context;
 class CompileOptions;
 class UnitFile;
+class IncludeFile;
+class CompileUnitFile;
 class TokenBuffer;
 class TokenList;
 typedef RefPtr<TokenList>	TokenListPtr;
 typedef RefPtr<UnitFile>	UnitFilePtr;
+typedef RefPtr<IncludeFile>	IncludeFilePtr;
 
 class DiagnosticsItemSet;
 
@@ -49,6 +52,7 @@ LN_ENUM(CommonTokenType)
 	StringLiteral,			/**< 文字列 */
 	Comment,				/**< コメント */
 	MbsSequence,			/**< マルチバイト文字並び */
+	TextTokens,				/**< プリプロセッサなどで使われるメッセージ文字列 */
 	Eof,					/**< バッファ EOF */
 };
 LN_ENUM_DECLARE(CommonTokenType);

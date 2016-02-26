@@ -17,7 +17,7 @@ public:
 
 	void Initialize(const TokenPathName& fileAbsPath);
 
-	const TokenPathName& GetFilePath() const { return m_fileAbsPath; }
+	const TokenPathName& GetAbsolutePath() const { return m_fileAbsPath; }
 	const TokenPathName& GetDirectoryPath() const { return m_directoryAbsPath; }
 
 	void SetTokenList(TokenListPtr tokenList) { m_tokenList = tokenList; }
@@ -50,6 +50,23 @@ LN_INTERNAL_ACCESS:
 	// UIColors.h とか、ハードコーディングで埋め込んだリソースとか。
 	// 全部メモリに持っておくのもツライので、一時ファイルに保存することも検討する必要があるかも。
 };
+
+
+// 
+class IncludeFile
+	: public UnitFile
+{
+public:
+};
+
+// コンパイル単位ファイル (.cppなど。includeファイルではない)
+class CompileUnitFile
+	: public UnitFile
+{
+public:
+	Array<IncludeFile*>	includedFiles;
+};
+
 
 } // namespace Parser
 LN_NAMESPACE_END
